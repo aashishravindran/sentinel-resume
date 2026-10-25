@@ -19,7 +19,7 @@ new ResumeStack(app, 'SentinelResume', {
   lambdaBundlePath: path.join(root, 'build', 'lambda'),
   frontendDistPath: fs.existsSync(dist) ? dist : undefined,
   adminEmail: app.node.tryGetContext('adminEmail') ?? admins.admins[0],
-  chatModelId: app.node.tryGetContext('chatModelId') ?? 'us.amazon.nova-lite-v1:0',
+  chatModelId: app.node.tryGetContext('chatModelId') ?? 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
 });
 
 // Deployed by hand, once: `npx cdk deploy SentinelResumeCiCd`. The pipeline only deploys SentinelResume.

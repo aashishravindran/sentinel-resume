@@ -115,8 +115,8 @@ sends one on sign-up.
 
 ### Model
 
-`chatModelId` defaults to `us.amazon.nova-lite-v1:0`. To use Claude Haiku, enable it under Bedrock model
-access, then deploy with `-c chatModelId=us.anthropic.claude-haiku-4-5-20251001-v1:0`.
+`chatModelId` defaults to Claude Haiku 4.5 (`us.anthropic.claude-haiku-4-5-20251001-v1:0`), called through Bedrock with the
+Lambda's IAM role (no API key). Any Bedrock model or inference profile works: `-c chatModelId=us.amazon.nova-lite-v1:0`.
 
 ## Develop
 

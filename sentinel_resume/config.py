@@ -46,7 +46,7 @@ class Settings:
             audit_table=env["AUDIT_TABLE"],
             vector_bucket=env["VECTOR_BUCKET"],
             vector_index=env.get("VECTOR_INDEX", "resume"),
-            chat_model_id=env.get("CHAT_MODEL_ID", "us.amazon.nova-lite-v1:0"),
+            chat_model_id=env.get("CHAT_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"),
             embed_model_id=env.get("EMBED_MODEL_ID", "amazon.titan-embed-text-v2:0"),
             user_pool_id=env["SENTINEL_OIDC_ISSUER"].rstrip("/").rsplit("/", 1)[-1],
             admin_subs_param=env.get("ADMIN_SUBS_PARAM", "/sentinel-resume/admin-subs"),
