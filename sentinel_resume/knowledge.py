@@ -43,18 +43,34 @@ def build_filter(tags: Set[str]) -> dict[str, Any]:
 
 
 def chunk_text(text: str, max_chars: int = 800) -> list[str]:
-    """Paragraph-aligned chunks, so a sentence is never split across two of them."""
+    """Section-aligned chunks, each prefixed with the document title and its section heading.
+
+    A chunk like "- Stony Brook University ..." embeds poorly on its own; carrying
+    "Resume > Education" lets a question about education find it.
+    """
+    title, sections = "", [("", [])]
+    for line in text.splitlines():
+        if line.startswith("# ") and not title:
+            title = line[2:].strip()
+        elif line.startswith("## "):
+            sections.append((line[3:].strip(), []))
+        else:
+            sections[-1][1].append(line)
+
     chunks: list[str] = []
-    current = ""
-    for para in (p.strip() for p in text.split("\n\n")):
-        if not para:
+    for heading, lines in sections:
+        prefix = " > ".join(p for p in (title, heading) if p)
+        body = "\n".join(lines).strip()
+        if not body:
             continue
-        if current and len(current) + len(para) + 2 > max_chars:
-            chunks.append(current)
-            current = ""
-        current = f"{current}\n\n{para}" if current else para
-    if current:
-        chunks.append(current)
+        current = ""
+        for line in body.splitlines():
+            if current and len(current) + len(line) + 1 > max_chars:
+                chunks.append(f"{prefix}\n\n{current.strip()}" if prefix else current.strip())
+                current = ""
+            current += line + "\n"
+        if current.strip():
+            chunks.append(f"{prefix}\n\n{current.strip()}" if prefix else current.strip())
     return chunks
 
 

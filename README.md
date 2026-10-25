@@ -63,6 +63,12 @@ Nothing in the app can make someone an admin. Every admin call must pass four in
 Everything is serverless and on-demand (Cognito Lite, DynamoDB on-demand, S3 Vectors, Lambda, CloudFront),
 so an idle month costs cents. A question costs roughly one Titan embedding plus one small-model call.
 
+## Design docs
+
+- [FLOW.md](FLOW.md): sequence diagrams for sign-up, chat, request, approval and admin setup
+- [DECISIONS.md](DECISIONS.md): every choice, the alternatives and known limits
+- [docs/adr/](docs/adr/README.md): architecture decision records
+
 ## Run it
 
 Prerequisites: AWS credentials, a CDK-bootstrapped account, Node 22, [uv](https://docs.astral.sh/uv/).
