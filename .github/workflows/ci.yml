@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: |
+          uv sync
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run pyright
+      - name: Unit, workflow and red-team tests
+        run: uv run pytest -q
+
+  web-and-infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Frontend build
+        working-directory: frontend
+        run: npm ci && npm run build
+      - name: Lambda bundle
+        run: ./scripts/build_lambda.sh
+      - name: CDK tests and synth
+        working-directory: infra
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm test
+          npx cdk synth --quiet
+        env:
+          CDK_DEFAULT_ACCOUNT: "123456789012"
+          CDK_DEFAULT_REGION: us-east-1

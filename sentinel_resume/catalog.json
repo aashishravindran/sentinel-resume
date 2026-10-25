@@ -1,0 +1,52 @@
+{
+  "documents": [
+    {
+      "doc_id": "resume",
+      "title": "Resume",
+      "description": "Experience, education and skills.",
+      "tag": "public",
+      "requestable": false,
+      "file": "resume.md"
+    },
+    {
+      "doc_id": "projects",
+      "title": "Projects",
+      "description": "Write-ups of Sentinel and other recent projects.",
+      "tag": "public",
+      "requestable": false,
+      "file": "projects.md"
+    },
+    {
+      "doc_id": "references",
+      "title": "References",
+      "description": "Contacts and notes from former managers and peers.",
+      "tag": "doc_references",
+      "requestable": true,
+      "file": "synthetic/references.md"
+    },
+    {
+      "doc_id": "offer_letter_2024",
+      "title": "Offer letter (2024)",
+      "description": "Most recent offer: level, base, bonus and equity.",
+      "tag": "doc_offer_letter",
+      "requestable": true,
+      "file": "synthetic/offer_letter_2024.md"
+    },
+    {
+      "doc_id": "salary_history",
+      "title": "Salary history",
+      "description": "Compensation by year.",
+      "tag": "doc_salary_history",
+      "requestable": true,
+      "file": "synthetic/salary_history.md"
+    },
+    {
+      "doc_id": "tax_w2_2025",
+      "title": "W-2 (2025)",
+      "description": "Tax form. Never shared, so it cannot be requested.",
+      "tag": "doc_tax_w2_2025",
+      "requestable": false,
+      "file": "synthetic/tax_w2_2025.md"
+    }
+  ]
+}

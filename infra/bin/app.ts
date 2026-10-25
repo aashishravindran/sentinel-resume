@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+// Copyright (c) 2026 Aashish Ravindran. All rights reserved.
+// Use of this software is governed by the Elastic License 2.0
+// found in the LICENSE file.
+
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { App } from 'aws-cdk-lib';
+import { ResumeStack } from '../lib/resume-stack';
+
+const app = new App();
+const root = path.join(__dirname, '..', '..');
+const dist = path.join(root, 'frontend', 'dist');
+const admins: { admins: string[] } = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'admins.json'), 'utf8'));
+
+new ResumeStack(app, 'SentinelResume', {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION ?? 'us-east-1' },
+  lambdaBundlePath: path.join(root, 'build', 'lambda'),
+  frontendDistPath: fs.existsSync(dist) ? dist : undefined,
+  adminEmail: app.node.tryGetContext('adminEmail') ?? admins.admins[0],
+  chatModelId: app.node.tryGetContext('chatModelId') ?? 'us.amazon.nova-lite-v1:0',
+});
