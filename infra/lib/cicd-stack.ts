@@ -9,6 +9,11 @@ import type { Construct } from 'constructs';
 export interface CiCdStackProps extends StackProps {
   /** owner/name of the GitHub repository allowed to deploy. */
   readonly repository: string;
+  /**
+   * GitHub's immutable IDs for the owner and repository. GitHub puts them in the token subject
+   * (`repo:owner@<id>/name@<id>:...`), so a deleted-and-recreated repo cannot assume the role.
+   */
+  readonly repositoryIds: { readonly owner: number; readonly repo: number };
   /** GitHub environment the deploy job runs in; only it can assume the role. */
   readonly environment: string;
   /** Pass an existing provider ARN if the account already trusts GitHub's OIDC issuer. */
@@ -32,6 +37,7 @@ export class CiCdStack extends Stack {
           clientIds: ['sts.amazonaws.com'],
         });
 
+    const [owner, name] = props.repository.split('/');
     const role = new iam.Role(this, 'DeployRole', {
       roleName: 'sentinel-resume-github-deploy',
       maxSessionDuration: Duration.hours(1),
@@ -39,7 +45,7 @@ export class CiCdStack extends Stack {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
           // Only jobs that declare this environment; the environment only admits master.
-          'token.actions.githubusercontent.com:sub': `repo:${props.repository}:environment:${props.environment}`,
+          'token.actions.githubusercontent.com:sub': `repo:${owner}@${props.repositoryIds.owner}/${name}@${props.repositoryIds.repo}:environment:${props.environment}`,
         },
       }),
     });

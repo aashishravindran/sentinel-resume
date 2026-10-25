@@ -26,6 +26,7 @@ new ResumeStack(app, 'SentinelResume', {
 new CiCdStack(app, 'SentinelResumeCiCd', {
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION ?? 'us-east-1' },
   repository: 'aashishravindran/sentinel-resume',
+  repositoryIds: { owner: 16415392, repo: 1433636947 },
   environment: 'production',
   existingOidcProviderArn: app.node.tryGetContext('githubOidcProviderArn'),
 });

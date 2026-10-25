@@ -54,6 +54,6 @@ class Settings:
             from_email=env.get("FROM_EMAIL", ""),
             site_url=env.get("SITE_URL", ""),
             require_admin_mfa=env.get("REQUIRE_ADMIN_MFA", "true").lower() == "true",
-            min_relevance=float(env.get("MIN_RELEVANCE_SCORE", "0.12")),
+            min_relevance=float(env.get("MIN_RELEVANCE_SCORE", "0.05")),
             limits=Limits(),
         )

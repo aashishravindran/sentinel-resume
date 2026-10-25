@@ -70,14 +70,18 @@ sequenceDiagram
   L->>V: QueryVectors(embed(question), filter = $or of tag_<scope>)
   V-->>L: top-k chunks (only those matching the filter)
   L->>L: authorize_chunks: re-check every chunk's tags
-  L->>L: filter_relevant(score ≥ 0.12)
+  L->>L: filter_relevant(score ≥ 0.05)
   alt nothing left
     L-->>R: NO_RELEVANT_ACCESS + "request access" pointer (no model call)
   else chunks left
     L->>L: site budget counter < 1,500 today?
     L->>M: system prompt + <documents> (authorized chunks only) + question
-    M-->>L: answer
-    L-->>R: answer, citations, trace
+    M-->>L: answer, or NO_ANSWER
+    alt NO_ANSWER
+      L-->>R: same reply as "nothing left" (no hint that anything exists)
+    else answer
+      L-->>R: answer, sources it actually cited, trace
+    end
   end
 ```
 

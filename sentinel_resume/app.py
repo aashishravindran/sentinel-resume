@@ -23,7 +23,7 @@ from sentinel_resume.catalog import Doc, load_catalog, requestable_tags
 from sentinel_resume.config import Settings
 from sentinel_resume.identity import ExpiringDdbIdentity, IdentityStore
 from sentinel_resume.knowledge import S3VectorsKnowledge, TitanEmbedder, build_filter
-from sentinel_resume.llm import BedrockChatModel, ChatModel, answer
+from sentinel_resume.llm import BedrockChatModel, ChatModel, answer, cited_titles
 from sentinel_resume.ratelimit import RateLimited, RateLimiter
 from sentinel_resume.requests_store import DuplicateRequest, RequestNotPending, RequestsStore
 
@@ -183,16 +183,19 @@ async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
         ],
     }
     logger.info(json.dumps({"chat": {"user": p.user_id, **trace, "chunks": len(relevant)}}))
+    no_answer = {"answer": NO_RELEVANT_ACCESS + REQUEST_HINT, "citations": [], "trace": trace}
     if not relevant:
-        return {"answer": NO_RELEVANT_ACCESS + REQUEST_HINT, "citations": [], "trace": trace}
+        return no_answer
 
     try:
         s.limiter.hit("global#bedrock", limits.global_chat_per_day, DAY)
     except RateLimited:
         raise HttpError(503, RESTING) from None
     text = await asyncio.to_thread(answer, s.model, question, relevant)
-    citations = sorted({str(c["metadata"].get("title", "")) for c in relevant} - {""})
-    return {"answer": text, "citations": citations, "trace": trace}
+    if text is None:
+        # Same reply as finding nothing: an unanswerable question reveals nothing either way.
+        return no_answer
+    return {"answer": text, "citations": cited_titles(text, relevant), "trace": trace}
 
 
 async def my_requests(s: Services, p: Principal, _: dict[str, Any]) -> Any:

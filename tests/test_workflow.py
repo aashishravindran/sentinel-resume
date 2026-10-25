@@ -12,7 +12,7 @@ def test_chat_answers_from_the_resume(harness: Harness) -> None:
         "POST /chat", harness.token(RECRUITER), {"question": "Where did Aashish study?"}
     )
     assert status == 200
-    assert body["answer"] == "stub answer"
+    assert body["answer"] == "stub answer [Resume]"
     assert "Resume" in body["citations"]
     assert "Stony Brook" in harness.model.prompts[-1]
 
@@ -133,3 +133,22 @@ def test_request_rate_limit(harness: Harness) -> None:
 def test_long_question_rejected(harness: Harness) -> None:
     status, _ = harness.call("POST /chat", harness.token(RECRUITER), {"question": "x" * 1001})
     assert status == 400
+
+
+def test_unanswerable_question_gets_the_same_reply_as_no_access(harness: Harness) -> None:
+    harness.model.reply = "NO_ANSWER"
+    status, body = harness.call("POST /chat", harness.token(RECRUITER), {"question": "salary?"})
+    assert status == 200
+    assert body["citations"] == []
+    assert body["answer"].startswith("You do not have access")
+    assert "Request access" in body["answer"]
+
+
+def test_only_cited_titles_are_listed_as_sources(harness: Harness) -> None:
+    harness.model.reply = "He studied at Stony Brook [Resume]. See also [Tax return]."
+    _, body = harness.call("POST /chat", harness.token(RECRUITER), {"question": "education"})
+    assert body["citations"] == ["Resume"]  # an invented title is dropped
+
+    harness.model.reply = "He studied at Stony Brook."
+    _, body = harness.call("POST /chat", harness.token(RECRUITER), {"question": "education"})
+    assert body["citations"] == []

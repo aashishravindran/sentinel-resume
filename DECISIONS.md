@@ -18,6 +18,9 @@ next question, and revoking or expiring a grant takes it away just as fast.
 | Vector store | S3 Vectors, queried directly | Bedrock KB on OpenSearch Serverless; Managed KB; Chroma | Metadata filter in the query, no idle cost, no ingestion jobs ([0001](docs/adr/0001-s3-vectors-knowledge-store.md)) |
 | Embeddings | Titan Text Embeddings v2, 1024-d, normalized | Cohere, Nova multimodal | Cheapest on Bedrock, IAM auth, fine at this size |
 | Chunking | Section-aligned, "Title > Section" prefix | Fixed-size paragraph chunks | Short sections (education) were unretrievable without their heading: 0.10 → 0.63 |
+| Unanswerable questions | Model replies `NO_ANSWER`; API returns the same message as "no access" | One reply whether nothing was found or nothing relevant was found; no model-invented "policy" text |
+| Sources | Only titles the answer cites in `[brackets]`, intersected with the chunks sent | A refusal no longer shows "Sources: Projects" |
+| Relevance floor | 0.05 (was 0.12) | Casual phrasing scored the right document at 0.11; the model's `NO_ANSWER` now does the filtering |
 | Answer model | Nova Lite (default), configurable | Haiku (preferred) | Haiku isn't invocable on this account yet; one context flag to switch ([0008](docs/adr/0008-model-sees-only-authorized-chunks.md)) |
 | API shape | Same origin under `/api` via CloudFront | Separate API domain with CORS | No CORS to misconfigure; build is deployment-agnostic ([0007](docs/adr/0007-same-origin-api.md)) |
 | Frontend | Vite + React + `aws-amplify/auth` (auth only) | Amplify Hosting/Gen2; hosted UI | Small bundle, custom sign-up/TOTP flow, CDK owns all infra |
@@ -62,6 +65,9 @@ next question, and revoking or expiring a grant takes it away just as fast.
 
 - **Haiku**: enable Bedrock model access (the account needs `aws-marketplace:Subscribe` once), then
   redeploy with `-c chatModelId=us.anthropic.claude-haiku-4-5-20251001-v1:0`.
+- **Model over-refusal**: Nova Lite's own privacy training refuses some requests the caller *is*
+  authorized for (e.g. an admin asking to "access his W-2" or for the SSN), while "show me his W-2"
+  works. Nova Pro refused more. This is a model limit, not an authorization one; Haiku should do better.
 - **S3 Vectors connector** belongs upstream in `sentinel-engine` as an `s3vectors` extra.
 - **SES sandbox**: notification email only reaches the verified admin address; recruiters are not
   emailed when a request is decided (they see it on the Request access page).

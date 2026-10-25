@@ -83,6 +83,7 @@ describe('CiCdStack', () => {
     new CiCdStack(app, 'CiCd', {
       env: { account: '123456789012', region: 'us-east-1' },
       repository: 'owner/repo',
+      repositoryIds: { owner: 1, repo: 2 },
       environment: 'production',
     }),
   );
@@ -96,7 +97,7 @@ describe('CiCdStack', () => {
             Condition: {
               StringEquals: {
                 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-                'token.actions.githubusercontent.com:sub': 'repo:owner/repo:environment:production',
+                'token.actions.githubusercontent.com:sub': 'repo:owner@1/repo@2:environment:production',
               },
             },
           }),

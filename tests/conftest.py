@@ -85,10 +85,11 @@ class FakeS3Vectors:
 class RecordingModel:
     def __init__(self) -> None:
         self.prompts: list[str] = []
+        self.reply = "stub answer [Resume]"
 
     def complete(self, system: str, user: str) -> str:
         self.prompts.append(user)
-        return "stub answer"
+        return self.reply
 
 
 class FakeSSM:
