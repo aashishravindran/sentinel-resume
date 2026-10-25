@@ -3,6 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { App } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
+import { CiCdStack } from '../lib/cicd-stack';
 import { ResumeStack } from '../lib/resume-stack';
 
 function synth(chatModelId = 'us.amazon.nova-lite-v1:0'): Template {
@@ -73,5 +74,39 @@ describe('ResumeStack', () => {
     t.hasResourceProperties('AWS::Budgets::Budget', {
       Budget: Match.objectLike({ BudgetLimit: { Amount: 10, Unit: 'USD' } }),
     });
+  });
+});
+
+describe('CiCdStack', () => {
+  const app = new App();
+  const t = Template.fromStack(
+    new CiCdStack(app, 'CiCd', {
+      env: { account: '123456789012', region: 'us-east-1' },
+      repository: 'owner/repo',
+      environment: 'production',
+    }),
+  );
+
+  test('only the production environment of the repo can assume the deploy role', () => {
+    t.hasResourceProperties('AWS::IAM::Role', {
+      AssumeRolePolicyDocument: {
+        Statement: [
+          Match.objectLike({
+            Action: 'sts:AssumeRoleWithWebIdentity',
+            Condition: {
+              StringEquals: {
+                'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+                'token.actions.githubusercontent.com:sub': 'repo:owner/repo:environment:production',
+              },
+            },
+          }),
+        ],
+      },
+    });
+  });
+
+  test('the role cannot touch IAM directly', () => {
+    const policies = JSON.stringify(t.findResources('AWS::IAM::Policy'));
+    expect(policies).not.toMatch(/"iam:/);
   });
 });

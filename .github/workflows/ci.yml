@@ -4,6 +4,10 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   python:
@@ -18,10 +22,10 @@ jobs:
           uv run ruff check .
           uv run ruff format --check .
           uv run pyright
-      - name: Unit, workflow and red-team tests
+      - name: Unit, workflow, trigger and red-team tests
         run: uv run pytest -q
 
-  web-and-infra:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,3 +48,62 @@ jobs:
         env:
           CDK_DEFAULT_ACCOUNT: "123456789012"
           CDK_DEFAULT_REGION: us-east-1
+      # Deploy exactly what was tested, not a rebuild.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lambda
+          path: build/lambda
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend
+          path: frontend/dist
+          retention-days: 7
+
+  deploy:
+    needs: [python, build]
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    # The deploy role trusts only this environment, and the environment admits only master.
+    environment:
+      name: production
+      url: https://d381grodpq0ta7.cloudfront.net
+    # One deploy at a time; a newer push waits rather than cancelling a deploy halfway.
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: lambda
+          path: build/lambda
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: frontend/dist
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Deploy the stack
+        working-directory: infra
+        run: |
+          npm ci
+          npx cdk deploy SentinelResume --exclusively --require-approval never
+      - run: uv sync
+      - name: Re-embed the corpus
+        run: uv run python -m scripts.ingest_corpus
+      - name: Reset the demo accounts in the README
+        run: uv run python -m scripts.test_users create
+      - name: Live end-to-end check
+        run: uv run python -m scripts.e2e

@@ -12,6 +12,29 @@ chats with an assistant about my resume, and the assistant can only retrieve wha
 The sensitive documents are **synthetic** (fictional figures and people) so a leak could not hurt anyone,
 but the system is built as if they were real.
 
+## Try it out
+
+Open **https://d381grodpq0ta7.cloudfront.net** and either sign up with your own email, or sign in as one
+of these demo recruiters. Each one sees a different slice of the same documents:
+
+| Email | Password | Can read |
+|---|---|---|
+| `basic.recruiter@example.com` | `Demo-Basic-2026` | resume, projects |
+| `offer.recruiter@example.com` | `Demo-Offer-2026` | + offer letter |
+| `full.recruiter@example.com` | `Demo-Full-2026` | + offer letter, salary history, references |
+
+Nobody can read the W-2. Ask each of them the same questions and compare the answers and the
+**"Why can't I see that?"** panel:
+
+- *Where did Aashish study?*: everyone gets an answer
+- *What base salary was in his 2024 offer?*: only the offer and full recruiters
+- *What did his references say about him?*: only the full recruiter
+- *What were his W-2 wages?*: nobody, whatever the wording
+
+The demo accounts are shared, so they also share rate limits (20 questions an hour each). Their grants
+expire periodically and are re-created by `scripts/test_users.py`. Sign up yourself to try the
+**Request access** flow.
+
 ## How access is enforced
 
 ```
@@ -98,7 +121,7 @@ access, then deploy with `-c chatModelId=us.anthropic.claude-haiku-4-5-20251001-
 ## Develop
 
 ```bash
-uv run pytest                 # unit, workflow and red-team tests (moto + in-memory S3 Vectors)
+uv run pytest                 # unit, workflow, trigger and red-team tests (moto + in-memory S3 Vectors)
 uv run ruff check . && uv run pyright
 (cd infra && npm test)
 SITE=https://<your-site> npm --prefix frontend run dev   # local UI against a deployed API
@@ -107,6 +130,29 @@ SITE=https://<your-site> npm --prefix frontend run dev   # local UI against a de
 The red-team suite sends adversarial questions (prompt injection, filter injection, user IDs in the body,
 forged/expired/ID tokens, a store that ignores the filter) and asserts that no restricted text ever reaches
 the model.
+
+## CI/CD
+
+Every push and pull request runs the tests, builds the SPA and Lambda bundle, and synthesizes the stack.
+A push to `master` that passes then deploys automatically:
+
+```
+push to master ─► tests + build ─► deploy (GitHub OIDC role, no stored keys)
+                                     ├─ cdk deploy SentinelResume (the tested artifacts)
+                                     ├─ re-embed corpus/
+                                     ├─ reset the demo accounts above
+                                     └─ live e2e: sign-up, chat, denial, request, approve, expiry
+```
+
+One-time setup (already done for this deployment):
+
+```bash
+(cd infra && npx cdk deploy SentinelResumeCiCd)   # GitHub OIDC provider + deploy role
+gh variable set AWS_DEPLOY_ROLE_ARN --env production --body <DeployRoleArn output>
+# GitHub environment "production", deployment branches: master only
+```
+
+See [ADR 0011](docs/adr/0011-github-oidc-continuous-deploy.md) for the trust model and its limits.
 
 ## License
 

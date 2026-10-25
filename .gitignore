@@ -7,3 +7,4 @@ node_modules/
 frontend/dist/
 infra/cdk.out/
 .DS_Store
+.test-users.json

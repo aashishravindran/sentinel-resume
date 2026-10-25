@@ -6,6 +6,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { App } from 'aws-cdk-lib';
+import { CiCdStack } from '../lib/cicd-stack';
 import { ResumeStack } from '../lib/resume-stack';
 
 const app = new App();
@@ -19,4 +20,12 @@ new ResumeStack(app, 'SentinelResume', {
   frontendDistPath: fs.existsSync(dist) ? dist : undefined,
   adminEmail: app.node.tryGetContext('adminEmail') ?? admins.admins[0],
   chatModelId: app.node.tryGetContext('chatModelId') ?? 'us.amazon.nova-lite-v1:0',
+});
+
+// Deployed by hand, once: `npx cdk deploy SentinelResumeCiCd`. The pipeline only deploys SentinelResume.
+new CiCdStack(app, 'SentinelResumeCiCd', {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION ?? 'us-east-1' },
+  repository: 'aashishravindran/sentinel-resume',
+  environment: 'production',
+  existingOidcProviderArn: app.node.tryGetContext('githubOidcProviderArn'),
 });

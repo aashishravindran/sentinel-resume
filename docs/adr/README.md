@@ -12,6 +12,7 @@
 | [0008](0008-model-sees-only-authorized-chunks.md) | The model only ever sees authorized chunks; the model is configurable | Accepted |
 | [0009](0009-published-catalog.md) | Requests come from a published catalog, never from search results | Accepted |
 | [0010](0010-synthetic-sensitive-documents.md) | Real resume, synthetic sensitive documents | Accepted |
+| [0011](0011-github-oidc-continuous-deploy.md) | Continuous deploy from master through GitHub OIDC | Accepted |
 
 Sentinel's own ADRs (identity from the transport, fail closed, tags over document IDs) apply here
 unchanged: https://github.com/aashishravindran/Sentinel/tree/master/docs/adr

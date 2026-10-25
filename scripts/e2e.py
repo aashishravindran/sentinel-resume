@@ -34,6 +34,11 @@ def totp(secret: str, at: float | None = None) -> str:
     return f"{(struct.unpack('>I', digest[offset : offset + 4])[0] & 0x7FFFFFFF) % 1_000_000:06d}"
 
 
+def _sub_of(cognito: Any, pool: str, email: str) -> str:
+    user = cognito.admin_get_user(UserPoolId=pool, Username=email)
+    return next(a["Value"] for a in user["UserAttributes"] if a["Name"] == "sub")
+
+
 class Site:
     def __init__(self, url: str):
         self.url = url
@@ -115,6 +120,30 @@ def main() -> None:
         return result["AuthenticationResult"]["AccessToken"]
 
     try:
+        # --- self sign-up, as the site does it ------------------------------------------------
+        # SignUp fires the pre-sign-up trigger; AdminConfirmSignUp stands in for typing the
+        # emailed code and fires the post-confirmation trigger. The SES mailbox simulator
+        # accepts the verification email without a real inbox.
+        signup_email = f"success+signup-{run}@simulator.amazonses.com"
+        signup_pw = secrets.token_urlsafe(18) + "aA1"
+        cognito.sign_up(
+            ClientId=client_id,
+            Username=signup_email,
+            Password=signup_pw,
+            UserAttributes=[{"Name": "email", "Value": signup_email}],
+        )
+        users.append(signup_email)
+        item = identity.get_item(Key={"user_id": _sub_of(cognito, pool, signup_email)})
+        check("no scope before email is confirmed", "Item" not in item, item)
+        cognito.admin_confirm_sign_up(UserPoolId=pool, Username=signup_email)
+        signed_up = sign_in(signup_email, signup_pw)
+        status, me = site.call("GET", "/me", signed_up)
+        check(
+            "self sign-up gets public scope from the trigger",
+            status == 200 and me["scope"] == ["public"] and me["email"] == signup_email,
+            me,
+        )
+
         # --- recruiter ------------------------------------------------------------------------
         recruiter_email = f"e2e-recruiter-{run}@example.com"
         _, recruiter_pw = make_user(recruiter_email)
@@ -220,9 +249,7 @@ def main() -> None:
                 Name=out["AdminSubsParam"], Value=saved_allowlist, Type="String", Overwrite=True
             )
         for email in users:
-            user = cognito.admin_get_user(UserPoolId=pool, Username=email)
-            sub = next(a["Value"] for a in user["UserAttributes"] if a["Name"] == "sub")
-            identity.delete_item(Key={"user_id": sub})
+            identity.delete_item(Key={"user_id": _sub_of(cognito, pool, email)})
             cognito.admin_delete_user(UserPoolId=pool, Username=email)
         print(f"cleaned up {len(users)} test user(s)")
 
