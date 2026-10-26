@@ -1,4 +1,5 @@
 import { setUpTOTP, updateMFAPreference, verifyTOTPSetup } from 'aws-amplify/auth';
+import QRCode from 'qrcode';
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, type AccessRequest, type AdminOverview, api, when } from '../api';
 
@@ -181,6 +182,7 @@ function PendingRow({ request, act }: { request: AccessRequest; act: (path: stri
 function MfaSetup({ onDone }: { onDone: () => void }) {
   const [secret, setSecret] = useState('');
   const [uri, setUri] = useState('');
+  const [qr, setQr] = useState('');
   const [code, setCode] = useState('');
   const [message, setMessage] = useState('');
 
@@ -191,8 +193,11 @@ function MfaSetup({ onDone }: { onDone: () => void }) {
         <button
           onClick={async () => {
             const details = await setUpTOTP();
+            const setupUri = details.getSetupUri('Sentinel Resume').toString();
             setSecret(details.sharedSecret);
-            setUri(details.getSetupUri('Sentinel Resume').toString());
+            setUri(setupUri);
+            // Drawn in the browser: the secret never leaves this page.
+            setQr(await QRCode.toDataURL(setupUri, { margin: 1, width: 220, errorCorrectionLevel: 'M' }));
           }}
         >
           Set up an authenticator app
@@ -213,13 +218,18 @@ function MfaSetup({ onDone }: { onDone: () => void }) {
             }
           }}
         >
-          <p>
-            Add this key to your authenticator app, or open the link on your phone:
-            <br />
-            <code className="secret">{secret}</code>
-            <br />
-            <a href={uri}>otpauth link</a>
-          </p>
+          <ol className="mfa-steps">
+            <li>
+              Scan this code with an authenticator app (Google Authenticator, 1Password, Authy, Microsoft
+              Authenticator).
+              {qr && <img className="qr" src={qr} width={220} height={220} alt="QR code for your authenticator app" />}
+            </li>
+            <li>
+              Can't scan? Enter this key by hand, or <a href={uri}>open it on this phone</a>:
+              <code className="secret">{secret}</code>
+            </li>
+            <li>Type the 6-digit code the app shows.</li>
+          </ol>
           <label>
             Code from the app
             <input inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} required />
