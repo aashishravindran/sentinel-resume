@@ -60,8 +60,16 @@ def test_forgot_password_confirmation_is_ignored(tables: Any) -> None:
 
 
 def test_sign_ups_are_capped_per_day(tables: Any) -> None:
-    event: dict[str, Any] = {"request": {}}
+    event: dict[str, Any] = {"triggerSource": "PreSignUp_SignUp", "request": {}}
     triggers.pre_sign_up(event, None)
     triggers.pre_sign_up(event, None)
     with pytest.raises(Exception, match="paused for today"):
         triggers.pre_sign_up(event, None)
+
+
+def test_admin_created_users_never_use_up_the_cap(tables: Any) -> None:
+    # Demo and e2e users are created through the admin API on every deploy.
+    admin: dict[str, Any] = {"triggerSource": "PreSignUp_AdminCreateUser", "request": {}}
+    for _ in range(10):
+        triggers.pre_sign_up(admin, None)
+    triggers.pre_sign_up({"triggerSource": "PreSignUp_SignUp", "request": {}}, None)
