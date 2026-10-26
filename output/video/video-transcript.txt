@@ -1,0 +1,39 @@
+1. I love building in public.
+Sometimes that means fixing my mistakes in public too.
+The gap in Sentinel v1: secure_search(query, user_id)
+The model supplied the identity: A mistake or injection could pass user_id="ceo".
+Permissions could be correct...: ...for the wrong person.
+
+2. V2 fixes the identity boundary.
+The search tool no longer accepts a user ID.
+Identity from the connection: Verified user JWT, or configured local MCP launcher
+Permissions resolved live: Access filters go inside the vector query.
+Every chunk checked again: Identity or permission resolution failure denies access.
+
+3. One engine. Multiple integrations.
+Sentinel’s original architecture
+
+
+4. Meet sentinel-resume.
+A working app built on the shared engine.
+Ask about my work: Resume, projects, and architecture decisions, with citations.
+Inspect the retrieval boundary: “What the assistant saw” shows scope, filter, and context.
+Compare access levels: Demo accounts let you ask the same question as different users.
+
+5. Request a document.
+Access is specific, reviewed, and temporary.
+1 / Browse the catalog: See accessible, requestable, and non-requestable documents.
+2 / Explain why you need access: Submit a reason and track the request status.
+3 / Receive an expiring grant: Approval opens the specific document for a chosen duration.
+
+6. Manage it from the admin view.
+The request workflow has an operator side too.
+Review, approve, or deny: Read the request reason and choose how long access lasts.
+Inspect grants and the audit trail: Revoke a grant; the next question uses updated permissions.
+Protect the admin boundary: Named allowlist, admin group, engine check, and TOTP MFA.
+
+7. Try the boundary yourself.
+Who decides whose permissions the agent uses?
+Built for a public demo: Per-user limits, signup caps, and a daily model-call ceiling.
+Real resume. Synthetic restricted docs.: The offer, salary history, references, and tax form are fictional.
+Code + demo accounts: github.com/aashishravindran/sentinel-resume

@@ -1,6 +1,6 @@
 import { getCurrentUser, signOut } from 'aws-amplify/auth';
 import { useCallback, useEffect, useState } from 'react';
-import { NavLink, Navigate, Route, Routes } from 'react-router';
+import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router';
 import { api, type Me } from './api';
 import { AccessPage } from './pages/Access';
 import { AdminPage } from './pages/Admin';
@@ -13,6 +13,7 @@ const SOURCE_URL = 'https://github.com/aashishravindran/sentinel-resume';
 export function App() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [me, setMe] = useState<Me | null>(null);
+  const navigate = useNavigate();
 
   const refreshMe = useCallback(async () => {
     try {
@@ -33,7 +34,18 @@ export function App() {
   }, [signedIn, refreshMe]);
 
   if (signedIn === null) return null;
-  if (!signedIn) return <Landing onSignedIn={() => setSignedIn(true)} />;
+  if (!signedIn)
+    return (
+      <Landing
+        onSignedIn={() => {
+          // Always start a new session at chat, never on the page the last user left open.
+          navigate('/chat', { replace: true });
+          setSignedIn(true);
+        }}
+      />
+    );
+
+  const mayOpenAdmin = Boolean(me?.is_admin || me?.admin_needs_mfa);
 
   return (
     <>
@@ -42,7 +54,7 @@ export function App() {
         <nav aria-label="Main">
           <NavLink to="/chat">Chat</NavLink>
           <NavLink to="/access">Documents</NavLink>
-          {(me?.is_admin || me?.admin_needs_mfa) && (
+          {mayOpenAdmin && me && (
             <NavLink to="/admin">
               Admin
               {me.pending_requests > 0 && (
@@ -59,8 +71,9 @@ export function App() {
             className="quiet"
             onClick={async () => {
               await signOut();
-              setSignedIn(false);
               setMe(null);
+              setSignedIn(false);
+              navigate('/', { replace: true });
             }}
           >
             Sign out
@@ -70,7 +83,13 @@ export function App() {
       <Routes>
         <Route path="/chat" element={<ChatPage me={me} />} />
         <Route path="/access" element={<AccessPage onChange={refreshMe} />} />
-        <Route path="/admin" element={<AdminPage onChange={refreshMe} />} />
+        <Route
+          path="/admin"
+          element={
+            // Wait for /me; then only named admins get the page, everyone else goes to chat.
+            me === null ? null : mayOpenAdmin ? <AdminPage onChange={refreshMe} /> : <Navigate to="/chat" replace />
+          }
+        />
         <Route path="*" element={<Navigate to="/chat" replace />} />
       </Routes>
     </>
@@ -121,6 +140,7 @@ function Landing({ onSignedIn }: { onSignedIn: () => void }) {
           <p className="shelf-caption">
             Request a restricted document after you sign up. Aashish reviews each request, and an approval opens the
             document for a limited time. The restricted documents are synthetic; the resume and projects are real.
+            Questions are logged for 30 days to keep the demo safe.
           </p>
         </section>
         <AuthPanel onSignedIn={onSignedIn} />

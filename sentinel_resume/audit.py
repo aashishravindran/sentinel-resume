@@ -22,7 +22,7 @@ class AuditLog:
     def record(self, action: str, actor: str, **details: Any) -> None:
         now = int(self.clock())
         entry = {"action": action, "actor": actor, **details}
-        logger.info(json.dumps({"audit": entry}, default=str))
+        logger.info("audit", extra={"audit": json.loads(json.dumps(entry, default=str))})
         try:
             self.table.put_item(
                 Item={

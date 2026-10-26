@@ -138,6 +138,14 @@ export class CiCdStack extends Stack {
     allow(['cloudfront:*'], ['*']);
     allow(['ses:*'], [arn('ses', 'identity/*')]);
     allow(['budgets:*'], [`arn:aws:budgets::${account}:budget/sentinel-resume`]);
+    // Monitoring: alarms, the dashboard and the alerts topic (names start with the stack name).
+    allow(['cloudwatch:PutMetricAlarm', 'cloudwatch:DeleteAlarms', 'cloudwatch:DescribeAlarms',
+      'cloudwatch:TagResource', 'cloudwatch:UntagResource', 'cloudwatch:ListTagsForResource'],
+    [arn('cloudwatch', 'alarm:SentinelResume-*')]);
+    allow(['cloudwatch:PutDashboard', 'cloudwatch:DeleteDashboards', 'cloudwatch:GetDashboard'],
+      [`arn:aws:cloudwatch::${account}:dashboard/SentinelResume`]);
+    allow(['sns:*'], [arn('sns', 'SentinelResume-*')]);
+    allow(['sns:Unsubscribe', 'sns:GetSubscriptionAttributes', 'sns:SetSubscriptionAttributes'], ['*']);
 
     // --- GitHub deploy role: deploy one stack, nothing else ----------------------------------------
     const role = new iam.Role(this, 'DeployRole', {

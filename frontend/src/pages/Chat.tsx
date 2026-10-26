@@ -142,7 +142,7 @@ export function ChatPage({ me }: { me: Me | null }) {
             />
             <button disabled={busy || !question.trim()}>Ask</button>
           </div>
-          <small>Enter to send, Shift+Enter for a new line.</small>
+          <small>Enter to send, Shift+Enter for a new line. Questions are logged for 30 days.</small>
         </form>
       </section>
       <TracePanel trace={latest} me={me} />
