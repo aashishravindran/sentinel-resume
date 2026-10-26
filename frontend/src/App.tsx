@@ -1,6 +1,6 @@
 import { getCurrentUser, signOut } from 'aws-amplify/auth';
 import { useCallback, useEffect, useState } from 'react';
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { NavLink, Navigate, Route, Routes } from 'react-router';
 import { api, type Me } from './api';
 import { AccessPage } from './pages/Access';
 import { AdminPage } from './pages/Admin';

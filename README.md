@@ -182,6 +182,11 @@ What the pipeline can do to the AWS account, at most:
 | CloudFormation execution role | the services this stack uses, on `SentinelResume-*` names; create roles named `SentinelResume-*` **only** with the boundary attached | create a role without the boundary, remove a boundary, attach any managed policy but Lambda basic execution |
 | Permissions boundary on every app role | the app's tables, vector index, Bedrock, its SSM parameter, SES, its buckets, CloudFront invalidations | anything else, whatever policy a template attaches |
 
+Zero known vulnerabilities is a merge requirement: the required checks run `npm audit` (frontend and
+infra, any severity) and `pip-audit` (every locked Python dependency). Dependabot opens weekly and
+security-update PRs, CodeQL scans the Python and TypeScript, and secret scanning with push protection
+blocks committed credentials.
+
 Repository settings: Actions limited to GitHub-owned actions plus `aws-actions/configure-aws-credentials`
 and `astral-sh/setup-uv`, all pinned to commit SHAs (enforced); workflows from every outside
 contributor need approval; the default `GITHUB_TOKEN` is read-only.

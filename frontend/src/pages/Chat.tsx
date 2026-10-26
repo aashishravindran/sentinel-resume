@@ -1,5 +1,5 @@
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ApiError, api, type Catalog, type ChatReply, type Me, type Trace } from '../api';
 import { Markdown } from '../ui';
 

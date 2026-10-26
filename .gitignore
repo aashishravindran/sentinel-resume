@@ -9,3 +9,4 @@ infra/cdk.out/
 .DS_Store
 .test-users.json
 sentinel_resume/library_index.json
+requirements-audit.txt

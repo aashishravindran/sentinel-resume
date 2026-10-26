@@ -1,0 +1,24 @@
+# Weekly version updates, plus security updates as soon as an advisory lands. Each PR runs the
+# required checks (tests, build, audits) before it can merge into master.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    groups:
+      frontend:
+        patterns: ["*"]
+        update-types: [minor, patch]
+  - package-ecosystem: npm
+    directory: /infra
+    schedule: { interval: weekly }
+    groups:
+      infra:
+        patterns: ["*"]
+        update-types: [minor, patch]
+  - package-ecosystem: uv
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
