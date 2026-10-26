@@ -64,6 +64,17 @@ next question, and revoking or expiring a grant takes it away just as fast.
 | Rollback | CloudFormation on failed deploy; `git revert` otherwise | Simple; failed smoke tests fail the run loudly |
 | Demo accounts | Public logins in the README, reset on every deploy | Instant try-out; the sensitive docs are synthetic |
 
+## Dependency security
+
+| Decision | Chosen | Why |
+|---|---|---|
+| Vulnerability policy | Zero known advisories, any severity, dev tools included; CI fails otherwise | A public demo of a security product can't ship with known holes; a gate keeps it true after today |
+| React Router | v7 (`react-router`) | v6 has open advisories (open redirect, constructor injection) with no v6 fix |
+| Updates | Dependabot weekly (grouped minor/patch) and security updates; merged only through green PRs | Advisories land continuously; an audit gate without an update stream just blocks merges |
+| Scanning | CodeQL default setup (extended queries), secret scanning with push protection | Covers our own code and committed secrets, not just dependencies |
+
+A newly published advisory fails the next PR until it is fixed. That is intended.
+
 ## Known limits and next steps
 
 - **Model over-refusal**: Nova Lite and Nova Pro refused some requests the caller *was* authorized
