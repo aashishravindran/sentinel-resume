@@ -62,7 +62,7 @@ repo adds an S3 Vectors knowledge connector and a DynamoDB identity connector wi
 ### Request access
 
 Each sensitive document carries its own tag (`doc_offer_letter`, ...). A recruiter requests one from the
-**Documents** page with a reason; I get an email, and approving on `/admin` writes
+**Documents** page with a reason; I get an email (SNS), and approving on `/admin` writes
 `grant_doc_offer_letter = <expiry>` to their identity item. It applies on their next question and lapses on
 its own. Revoking removes it immediately.
 
@@ -129,8 +129,8 @@ uv run python -m scripts.sync_admins         # make the listed people admins
 uv run python -m scripts.e2e                 # live end-to-end check (creates and removes test users)
 ```
 
-AWS sends a verification email to the admin address for SES (access-request notifications) and Cognito
-sends one on sign-up.
+AWS asks the admin address to confirm the alerts subscription (alarms and one email per access
+request); Cognito sends a verification code on sign-up.
 
 ### Model
 
@@ -150,7 +150,8 @@ Everything lands in CloudWatch (30-day retention), and alarms email the admin th
   `PostcheckDropped`, which must stay 0.
 - **Alarms (email):** filter bypass (first occurrence), admin probing, rate-limit storms, 80% of the
   daily model budget and sign-up cap, budget exhausted, chat throttling, 500s, Lambda errors, slow
-  chat, and each new access request.
+  chat. Each access request is also emailed to the admin through the same
+  topic, with the recruiter, document, reason and a link to `/admin`.
 - **Dashboard:** `SentinelResume` in CloudWatch: 24-hour totals, traffic, questions, recruiters,
   abuse signals, latency, errors, and the latest questions and API calls.
 
@@ -200,7 +201,7 @@ What the pipeline can do to the AWS account, at most:
 |---|---|---|
 | GitHub deploy role (OIDC, `production` environment on master only) | change sets on the `SentinelResume` stack; upload to this app's asset bucket; pass one role to CloudFormation; the ingest, demo-user and e2e calls (Cognito admin calls only on the pool tagged `app=sentinel-resume`) | assume the CDK bootstrap roles; touch any other stack; create or edit IAM |
 | CloudFormation execution role | the services this stack uses, on `SentinelResume-*` names; create roles named `SentinelResume-*` **only** with the boundary attached | create a role without the boundary, remove a boundary, attach any managed policy but Lambda basic execution |
-| Permissions boundary on every app role | the app's tables, vector index, Bedrock, its SSM parameter, SES, its buckets, CloudFront invalidations | anything else, whatever policy a template attaches |
+| Permissions boundary on every app role | the app's tables, vector index, Bedrock, its SSM parameter, publishing to its own SNS topics, its buckets, CloudFront invalidations | anything else, whatever policy a template attaches |
 
 Zero known vulnerabilities is a merge requirement: the required checks run `npm audit` (frontend and
 infra, any severity) and `pip-audit` (every locked Python dependency). Dependabot opens weekly and

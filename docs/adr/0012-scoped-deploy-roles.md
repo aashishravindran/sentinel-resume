@@ -32,7 +32,7 @@ publish them.
    setting its boundary all require `iam:PermissionsBoundary` = the boundary policy. Removing a
    boundary isn't allowed, and the only managed policy it can attach is Lambda basic execution.
 3. **Permissions boundary** `sentinel-resume-boundary`, applied to every role in the app stack with
-   `PermissionsBoundary.of(stack)`: the app's tables, vector index, Bedrock, its SSM parameter, SES,
+   `PermissionsBoundary.of(stack)`: the app's tables, vector index, Bedrock, its SSM parameter, publishing to its own SNS topics,
    its buckets, log groups and CloudFront invalidations. Whatever a template attaches to a Lambda
    role, the Lambda can't exceed this.
 

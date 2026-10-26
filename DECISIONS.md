@@ -71,7 +71,8 @@ next question, and revoking or expiring a grant takes it away just as fast.
 | Metrics | Embedded Metric Format lines from the Lambdas | `PutMetricData`; log metric filters | No API calls, no extra IAM, and Lambda's JSON logging would hide our fields from metric filters |
 | Request logging | One structured line per call from the Lambda (with `sub`, IP, user agent) | API Gateway access logs | Same data plus the verified user, without log-delivery permissions on the deploy role |
 | Question logging | Full question text, 30 days, disclosed on the site | Not logging questions | After a public post, abuse and prompt-injection attempts are what you need to see |
-| Alerts | CloudWatch alarms to an SNS email topic; a filter bypass alarms on the first event | Paging service | One maintainer; email is enough, and SNS works while SES is in the sandbox |
+| Alerts | CloudWatch alarms to an SNS email topic; a filter bypass alarms on the first event | Paging service | One maintainer; email is enough |
+| Access-request email | The API publishes each request to the alerts topic | SES email; a CloudWatch alarm on the request count | SES needs sender verification and is sandboxed; an alarm only fires on a state change, so a second request in the window was silent, and it couldn't say who asked or why |
 
 ## Dependency security
 
@@ -93,8 +94,8 @@ A newly published advisory fails the next PR until it is fixed. That is intended
   retrieve it" and Haiku refused the admin. Access rules live in the catalog, never in document
   text, and the prompt says access has already been enforced.
 - **S3 Vectors connector** belongs upstream in `sentinel-engine` as an `s3vectors` extra.
-- **SES sandbox**: notification email only reaches the verified admin address; recruiters are not
-  emailed when a request is decided (they see it on the Request access page).
+- **Recruiters are not emailed** when a request is decided; they see it on the Documents page.
+  Admin notifications go through SNS, which can only email confirmed subscribers.
 - **Fixed-window limits** allow a burst of up to 2x across a window boundary.
 - **Admin overview** scans the identity table for active grants; fine for hundreds of users, not
   for millions.

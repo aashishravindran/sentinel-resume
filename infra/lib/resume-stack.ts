@@ -17,7 +17,6 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as s3vectors from 'aws-cdk-lib/aws-s3vectors';
-import * as ses from 'aws-cdk-lib/aws-ses';
 import type { Construct } from 'constructs';
 import { APP_TAG_KEY, APP_TAG_VALUE, BOUNDARY_POLICY_NAME } from './cicd-stack';
 import { Monitoring } from './monitoring';
@@ -27,7 +26,7 @@ export interface ResumeStackProps extends StackProps {
   readonly lambdaBundlePath: string;
   /** Built SPA (frontend/dist). Omit to deploy only config.json, e.g. in tests. */
   readonly frontendDistPath?: string;
-  /** Receives access-request emails and budget alerts; also the SES sender. */
+  /** Subscribed to the alerts topic (alarms, access requests) and the budget alert. */
   readonly adminEmail: string;
   /** Bedrock model or inference profile for answers. */
   readonly chatModelId: string;
@@ -153,8 +152,6 @@ export class ResumeStack extends Stack {
       CHAT_MODEL_ID: props.chatModelId,
       EMBED_MODEL_ID: EMBED_MODEL_ID,
       ADMIN_SUBS_PARAM: ADMIN_SUBS_PARAM,
-      ADMIN_EMAIL: props.adminEmail,
-      FROM_EMAIL: props.adminEmail,
       REQUIRE_ADMIN_MFA: 'true',
     };
     const chatFn = fn('Chat', 'sentinel_resume.app.handler', {
@@ -191,13 +188,6 @@ export class ResumeStack extends Stack {
     chatFn.addToRolePolicy(
       new iam.PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: bedrockResources(this, [EMBED_MODEL_ID, props.chatModelId]) }),
     );
-    apiFn.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ['ses:SendEmail'],
-        resources: [this.formatArn({ service: 'ses', resource: 'identity', resourceName: props.adminEmail })],
-      }),
-    );
-    new ses.EmailIdentity(this, 'AdminEmail', { identity: ses.Identity.email(props.adminEmail) });
 
     const api = new apigwv2.HttpApi(this, 'HttpApi', {
       defaultAuthorizer: new HttpJwtAuthorizer('Cognito', issuer, { jwtAudience: [client.userPoolClientId] }),
@@ -298,6 +288,10 @@ export class ResumeStack extends Stack {
       chatsPerDayBudget: MODEL_CALLS_PER_DAY,
       signupsPerDay: SIGNUPS_PER_DAY,
     });
+
+    // Access requests email the admin through the same topic as the alarms (no SES sandbox).
+    apiFn.addEnvironment('ALERTS_TOPIC_ARN', monitoring.topic.topicArn);
+    monitoring.topic.grantPublish(apiFn);
 
     new CfnOutput(this, 'AlertsTopicArn', { value: monitoring.topic.topicArn });
     new CfnOutput(this, 'DashboardUrl', {

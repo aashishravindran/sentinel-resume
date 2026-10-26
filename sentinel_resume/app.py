@@ -37,6 +37,7 @@ HOUR, DAY = 3600, 86400
 MAX_GRANT_MINUTES = 30 * 24 * 60
 DEFAULT_GRANT_MINUTES = 7 * 24 * 60
 REQUEST_HINT = " You can request restricted documents on the Documents page."
+E2E_EMAIL_PREFIX = "e2e-"
 RESTING = "The demo has hit its daily budget and is resting. Please come back tomorrow."
 
 
@@ -60,7 +61,7 @@ class Services:
     admin: AdminGate
     model: ChatModel
     catalog: list[Doc]
-    ses: Any
+    sns: Any
 
     @classmethod
     def from_env(cls) -> "Services":
@@ -94,7 +95,7 @@ class Services:
             ),
             model=BedrockChatModel(bedrock, settings.chat_model_id),
             catalog=load_catalog(),
-            ses=boto3.client("sesv2", region_name=settings.region),
+            sns=boto3.client("sns", region_name=settings.region),
         )
 
 
@@ -290,23 +291,20 @@ async def create_request(s: Services, p: Principal, event: dict[str, Any]) -> An
 
 
 def _notify_admin(s: Services, email: str, doc: Doc, reason: str, site: str) -> None:
-    if not (s.settings.admin_email and s.settings.from_email):
+    """One email per request, through the alerts topic the admin already subscribes to."""
+    # scripts/e2e.py files a request on every deploy; its throwaway users shouldn't email anyone.
+    # (They still appear on /admin; skipping an email hides nothing.)
+    if not s.settings.alerts_topic_arn or email.startswith(E2E_EMAIL_PREFIX):
         return
     try:
-        s.ses.send_email(
-            FromEmailAddress=s.settings.from_email,
-            Destination={"ToAddresses": [s.settings.admin_email]},
-            Content={
-                "Simple": {
-                    "Subject": {"Data": f"Access request: {doc.title}"},
-                    "Body": {
-                        "Text": {
-                            "Data": f"{email or 'A recruiter'} asked for {doc.title}.\n\n"
-                            f"Reason: {reason}\n\nReview: {site}/admin"
-                        }
-                    },
-                }
-            },
+        s.sns.publish(
+            TopicArn=s.settings.alerts_topic_arn,
+            Subject=f"Access request: {doc.title}"[:100],
+            Message=(
+                f"{email or 'A recruiter'} asked for {doc.title}.\n\n"
+                f"Reason: {reason}\n\n"
+                f"Approve or deny: {site}/admin"
+            ),
         )
     except Exception:
         logger.exception("admin notification failed")

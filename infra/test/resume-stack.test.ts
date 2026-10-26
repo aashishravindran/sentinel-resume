@@ -97,6 +97,17 @@ describe('ResumeStack', () => {
     t.hasResourceProperties('AWS::CloudWatch::Dashboard', { DashboardName: 'SentinelResume' });
   });
 
+  test('access requests are emailed through the alerts topic, not SES', () => {
+    expect(Object.keys(t.findResources('AWS::SES::EmailIdentity'))).toHaveLength(0);
+    expect(JSON.stringify(t.findResources('AWS::IAM::Policy'))).not.toContain('ses:');
+    t.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: { Statement: Match.arrayWith([Match.objectLike({ Action: 'sns:Publish' })]) },
+    });
+    t.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: { Variables: Match.objectLike({ ALERTS_TOPIC_ARN: Match.anyValue() }) },
+    });
+  });
+
   test('budget alarm exists', () => {
     t.hasResourceProperties('AWS::Budgets::Budget', {
       Budget: Match.objectLike({

@@ -94,7 +94,8 @@ export class CiCdStack extends Stack {
         }),
         new iam.PolicyStatement({ actions: ['ssm:GetParameter'], resources: [arn('ssm', 'parameter/sentinel-resume/*')] }),
         new iam.PolicyStatement({ actions: ['cognito-idp:AdminGetUser'], resources: [arn('cognito-idp', 'userpool/*')] }),
-        new iam.PolicyStatement({ actions: ['ses:SendEmail'], resources: [arn('ses', 'identity/*')] }),
+        // Access-request emails go through the app's own alerts topic.
+        new iam.PolicyStatement({ actions: ['sns:Publish'], resources: [arn('sns', 'SentinelResume-*')] }),
         // BucketDeployment and auto-delete: the site bucket, plus reading uploaded assets.
         new iam.PolicyStatement({ actions: ['s3:*'], resources: appBuckets.flatMap((b) => [b, `${b}/*`]) }),
         new iam.PolicyStatement({
@@ -136,7 +137,8 @@ export class CiCdStack extends Stack {
     allow(['cognito-idp:CreateUserPool', 'cognito-idp:ListUserPools'], ['*']);
     allow(['apigateway:*'], [`arn:aws:apigateway:${region}::/*`]);
     allow(['cloudfront:*'], ['*']);
-    allow(['ses:*'], [arn('ses', 'identity/*')]);
+    // Only to delete the old SES identity the stack used before alerts moved to SNS.
+    allow(['ses:DeleteEmailIdentity', 'ses:GetEmailIdentity'], [arn('ses', 'identity/*')]);
     allow(['budgets:*'], [`arn:aws:budgets::${account}:budget/sentinel-resume`]);
     // Monitoring: alarms, the dashboard and the alerts topic (names start with the stack name).
     allow(['cloudwatch:PutMetricAlarm', 'cloudwatch:DeleteAlarms', 'cloudwatch:DescribeAlarms',
