@@ -1,7 +1,15 @@
-import { confirmSignIn, confirmSignUp, resendSignUpCode, signIn, signUp } from 'aws-amplify/auth';
+import {
+  confirmResetPassword,
+  confirmSignIn,
+  confirmSignUp,
+  resendSignUpCode,
+  resetPassword,
+  signIn,
+  signUp,
+} from 'aws-amplify/auth';
 import { type FormEvent, useState } from 'react';
 
-type Mode = 'signIn' | 'signUp' | 'confirm' | 'totp';
+type Mode = 'signIn' | 'signUp' | 'confirm' | 'totp' | 'forgot' | 'reset';
 
 export function AuthPanel({ onSignedIn }: { onSignedIn: () => void }) {
   const [mode, setMode] = useState<Mode>('signUp');
@@ -58,6 +66,9 @@ export function AuthPanel({ onSignedIn }: { onSignedIn: () => void }) {
           <Password value={password} onChange={setPassword} />
           <button disabled={busy}>Sign in</button>
           <p className="switch">
+            <button type="button" className="link" onClick={() => setMode('forgot')}>Forgot password?</button>
+          </p>
+          <p className="switch">
             New here? <button type="button" className="link" onClick={() => setMode('signUp')}>Create an account</button>
           </p>
         </form>
@@ -82,6 +93,32 @@ export function AuthPanel({ onSignedIn }: { onSignedIn: () => void }) {
           <h2>Authenticator code</h2>
           <Code value={code} onChange={setCode} />
           <button disabled={busy}>Continue</button>
+        </form>
+      )}
+      {mode === 'forgot' && (
+        <form onSubmit={run(async () => {
+          await resetPassword({ username: email });
+          setMode('reset');
+        })}>
+          <h2>Reset your password</h2>
+          <Email value={email} onChange={setEmail} />
+          <button disabled={busy}>Email me a code</button>
+          <p className="switch">
+            <button type="button" className="link" onClick={() => setMode('signIn')}>Back to sign in</button>
+          </p>
+        </form>
+      )}
+      {mode === 'reset' && (
+        <form onSubmit={run(async () => {
+          await confirmResetPassword({ username: email, confirmationCode: code.trim(), newPassword: password });
+          setCode('');
+          await doSignIn();
+        })}>
+          <h2>Choose a new password</h2>
+          <p>If {email} has an account, we sent it a code.</p>
+          <Code value={code} onChange={setCode} />
+          <Password value={password} onChange={setPassword} hint="At least 12 characters with upper, lower and a digit." />
+          <button disabled={busy}>Set password and sign in</button>
         </form>
       )}
       {error && <p className="error" role="alert">{error}</p>}

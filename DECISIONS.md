@@ -75,9 +75,9 @@ next question, and revoking or expiring a grant takes it away just as fast.
 - **Fixed-window limits** allow a burst of up to 2x across a window boundary.
 - **Admin overview** scans the identity table for active grants; fine for hundreds of users, not
   for millions.
-- **CDK execution role is AdministratorAccess** (bootstrap default), so push access to master is
-  effectively admin on the account. Re-bootstrap with a scoped `--cloudformation-execution-policies`
-  to narrow it.
+- **Execution role breadth**: scoped by service and name prefix, but Cognito, API Gateway and
+  CloudFront resources have generated IDs, so the execution role can manage any of those in the
+  account (ADR 0012). Whoever can push to master can still change this app freely.
 - **Shared demo accounts** can be abused (someone could change a password or enable MFA on one);
   every deploy resets them, and `scripts/test_users.py create` does it on demand.
 - **Custom domain**: the site runs on the CloudFront domain; add a certificate and alias for a

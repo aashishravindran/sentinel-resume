@@ -100,7 +100,8 @@ Prerequisites: AWS credentials, a CDK-bootstrapped account, Node 22, [uv](https:
 uv sync
 (cd frontend && npm ci && npm run build)
 ./scripts/build_lambda.sh
-(cd infra && npm ci && npx cdk deploy)       # -c chatModelId=... -c adminEmail=...
+(cd infra && npm ci && npx cdk deploy SentinelResumeCiCd)   # boundary, asset bucket, scoped roles
+(cd infra && npx cdk deploy SentinelResume --role-arn <ExecutionRoleArn output>)   # -c chatModelId=...
 
 uv run python -m scripts.ingest_corpus       # embed corpus/ into S3 Vectors
 # sign up on the site with the email in infra/admins.json, then:
@@ -137,7 +138,7 @@ Every push and pull request runs the tests, builds the SPA and Lambda bundle, an
 A push to `master` that passes then deploys automatically:
 
 ```
-push to master ─► tests + build ─► deploy (GitHub OIDC role, no stored keys)
+push to master ─► tests + build ─► deploy (GitHub OIDC role, no stored keys, scoped to this stack)
                                      ├─ cdk deploy SentinelResume (the tested artifacts)
                                      ├─ re-embed corpus/
                                      ├─ reset the demo accounts above
@@ -147,12 +148,23 @@ push to master ─► tests + build ─► deploy (GitHub OIDC role, no stored k
 One-time setup (already done for this deployment):
 
 ```bash
-(cd infra && npx cdk deploy SentinelResumeCiCd)   # GitHub OIDC provider + deploy role
-gh variable set AWS_DEPLOY_ROLE_ARN --env production --body <DeployRoleArn output>
+(cd infra && npx cdk deploy SentinelResumeCiCd)   # OIDC provider, deploy + execution roles, boundary
+gh secret set AWS_DEPLOY_ROLE_ARN --env production    # paste the DeployRoleArn output
+gh secret set CFN_EXEC_ROLE_ARN --env production      # paste the ExecutionRoleArn output
 # GitHub environment "production", deployment branches: master only
 ```
 
-See [ADR 0011](docs/adr/0011-github-oidc-continuous-deploy.md) for the trust model and its limits.
+What the pipeline can do to the AWS account, at most:
+
+| Role | Can | Cannot |
+|---|---|---|
+| GitHub deploy role (OIDC, `production` environment on master only) | change sets on the `SentinelResume` stack; upload to this app's asset bucket; pass one role to CloudFormation; the ingest, demo-user and e2e calls (Cognito admin calls only on the pool tagged `app=sentinel-resume`) | assume the CDK bootstrap roles; touch any other stack; create or edit IAM |
+| CloudFormation execution role | the services this stack uses, on `SentinelResume-*` names; create roles named `SentinelResume-*` **only** with the boundary attached | create a role without the boundary, remove a boundary, attach any managed policy but Lambda basic execution |
+| Permissions boundary on every app role | the app's tables, vector index, Bedrock, its SSM parameter, SES, its buckets, CloudFront invalidations | anything else, whatever policy a template attaches |
+
+Role names are generated, the ARNs live in GitHub environment secrets, the account ID is masked in the
+(public) logs, actions are pinned to commit SHAs, and dependencies install before credentials exist.
+See [ADR 0011](docs/adr/0011-github-oidc-continuous-deploy.md) and [ADR 0012](docs/adr/0012-scoped-deploy-roles.md).
 
 ## License
 

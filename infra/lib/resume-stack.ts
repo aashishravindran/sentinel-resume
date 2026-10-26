@@ -2,7 +2,7 @@
 // Use of this software is governed by the Elastic License 2.0
 // found in the LICENSE file.
 
-import { CfnOutput, Duration, Fn, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, Fn, RemovalPolicy, Stack, type StackProps, Tags } from 'aws-cdk-lib';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
@@ -19,6 +19,7 @@ import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as s3vectors from 'aws-cdk-lib/aws-s3vectors';
 import * as ses from 'aws-cdk-lib/aws-ses';
 import type { Construct } from 'constructs';
+import { APP_TAG_KEY, APP_TAG_VALUE, BOUNDARY_POLICY_NAME } from './cicd-stack';
 
 export interface ResumeStackProps extends StackProps {
   /** Python bundle from scripts/build_lambda.sh. */
@@ -39,6 +40,8 @@ const ADMIN_SUBS_PARAM = '/sentinel-resume/admin-subs';
 export class ResumeStack extends Stack {
   constructor(scope: Construct, id: string, props: ResumeStackProps) {
     super(scope, id, props);
+    // Created by SentinelResumeCiCd. The execution role refuses to create a role without it.
+    iam.PermissionsBoundary.of(this).apply(iam.ManagedPolicy.fromManagedPolicyName(this, 'Boundary', BOUNDARY_POLICY_NAME));
 
     // --- Data -------------------------------------------------------------------------------
     const table = (name: string, pk: string, ttl?: string) =>
@@ -116,6 +119,8 @@ export class ResumeStack extends Stack {
       lambdaTriggers: { preSignUp, postConfirmation },
       removalPolicy: RemovalPolicy.DESTROY,
     });
+    // The deploy role's Cognito admin calls (demo users, e2e) only work on a pool with this tag.
+    Tags.of(userPool).add(APP_TAG_KEY, APP_TAG_VALUE);
     const client = userPool.addClient('Web', {
       authFlows: { userSrp: true, userPassword: true },
       generateSecret: false,

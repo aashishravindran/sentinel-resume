@@ -5,8 +5,8 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { App } from 'aws-cdk-lib';
-import { CiCdStack } from '../lib/cicd-stack';
+import { App, CliCredentialsStackSynthesizer } from 'aws-cdk-lib';
+import { CiCdStack, assetsBucketName } from '../lib/cicd-stack';
 import { ResumeStack } from '../lib/resume-stack';
 
 const app = new App();
@@ -16,6 +16,10 @@ const admins: { admins: string[] } = JSON.parse(fs.readFileSync(path.join(__dirn
 
 new ResumeStack(app, 'SentinelResume', {
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION ?? 'us-east-1' },
+  // Deploy with the caller's credentials and this app's own asset bucket, not the CDK bootstrap roles
+  // (their deploy role can update any stack in the account). CloudFormation runs as the scoped
+  // execution role from SentinelResumeCiCd, passed with --role-arn.
+  synthesizer: new CliCredentialsStackSynthesizer({ fileAssetsBucketName: assetsBucketName() }),
   lambdaBundlePath: path.join(root, 'build', 'lambda'),
   frontendDistPath: fs.existsSync(dist) ? dist : undefined,
   adminEmail: app.node.tryGetContext('adminEmail') ?? admins.admins[0],

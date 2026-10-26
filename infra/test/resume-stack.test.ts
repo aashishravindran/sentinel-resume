@@ -70,6 +70,18 @@ describe('ResumeStack', () => {
     expect(withAction('bedrock:InvokeModel')).toHaveLength(1);
   });
 
+  test('every role carries the sentinel-resume permissions boundary', () => {
+    const roles = Object.values(t.findResources('AWS::IAM::Role'));
+    expect(roles.length).toBeGreaterThan(0);
+    for (const role of roles) {
+      expect(JSON.stringify(role.Properties.PermissionsBoundary)).toContain(':policy/sentinel-resume-boundary');
+    }
+  });
+
+  test('the user pool is tagged for the deploy role', () => {
+    t.hasResourceProperties('AWS::Cognito::UserPool', { UserPoolTags: { app: 'sentinel-resume' } });
+  });
+
   test('budget alarm exists', () => {
     t.hasResourceProperties('AWS::Budgets::Budget', {
       Budget: Match.objectLike({ BudgetLimit: { Amount: 10, Unit: 'USD' } }),
@@ -106,8 +118,43 @@ describe('CiCdStack', () => {
     });
   });
 
-  test('the role cannot touch IAM directly', () => {
-    const policies = JSON.stringify(t.findResources('AWS::IAM::Policy'));
-    expect(policies).not.toMatch(/"iam:/);
+  const policyOf = (logicalPrefix: string) => {
+    const [doc] = Object.entries(t.findResources('AWS::IAM::Policy'))
+      .filter(([id]) => id.startsWith(logicalPrefix))
+      .map(([, p]) => p.Properties.PolicyDocument.Statement as { Action: string | string[]; Condition?: unknown }[]);
+    return doc.map((st) => ({ actions: ([] as string[]).concat(st.Action), condition: st.Condition }));
+  };
+
+  test('the deploy role cannot assume the CDK bootstrap roles or touch IAM beyond passing one role', () => {
+    const statements = policyOf('DeployRole');
+    const actions = statements.flatMap((st) => st.actions);
+    expect(actions).not.toContain('sts:AssumeRole');
+    expect(actions.filter((a) => a.startsWith('iam:'))).toEqual(['iam:PassRole']);
+    const pass = statements.find((st) => st.actions.includes('iam:PassRole'))!;
+    expect(pass.condition).toEqual({ StringEquals: { 'iam:PassedToService': 'cloudformation.amazonaws.com' } });
+  });
+
+  test('the deploy role changes only the SentinelResume stack', () => {
+    const doc = JSON.stringify(t.findResources('AWS::IAM::Policy'));
+    expect(doc).toContain(':stack/SentinelResume/*');
+    expect(doc).not.toMatch(/"cloudformation:\*"/);
+  });
+
+  test('the execution role can only create roles that carry the boundary', () => {
+    const statements = policyOf('ExecutionRole');
+    for (const st of statements.filter((s) =>
+      s.actions.some((a) => ['iam:CreateRole', 'iam:PutRolePolicy', 'iam:AttachRolePolicy', 'iam:PutRolePermissionsBoundary'].includes(a)))) {
+      expect(JSON.stringify(st.condition)).toContain('iam:PermissionsBoundary');
+    }
+    const actions = statements.flatMap((st) => st.actions);
+    expect(actions).not.toContain('iam:*');
+    expect(actions).not.toContain('iam:DeleteRolePermissionsBoundary');
+    expect(actions).not.toContain('*');
+  });
+
+  test('no role has a fixed, guessable name', () => {
+    for (const role of Object.values(t.findResources('AWS::IAM::Role'))) {
+      expect(role.Properties.RoleName).toBeUndefined();
+    }
   });
 });
