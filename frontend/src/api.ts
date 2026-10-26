@@ -44,6 +44,8 @@ export interface Trace {
 
 export interface ChatReply {
   answer: string;
+  /** False when nothing you may read answers the question. */
+  answered: boolean;
   citations: string[];
   trace: Trace;
 }
@@ -68,6 +70,17 @@ export interface CatalogDoc {
   requestable: boolean;
   has_access: boolean;
   request: AccessRequest | null;
+}
+
+export interface LibraryDoc {
+  title: string;
+  project: string;
+  source: string;
+}
+
+export interface Catalog {
+  documents: CatalogDoc[];
+  library: LibraryDoc[];
 }
 
 export interface Grant {

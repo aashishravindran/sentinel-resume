@@ -141,7 +141,7 @@ def test_unanswerable_question_gets_the_same_reply_as_no_access(harness: Harness
     assert status == 200
     assert body["citations"] == []
     assert body["answer"].startswith("You do not have access")
-    assert "Request access" in body["answer"]
+    assert "Documents page" in body["answer"] and body["answered"] is False
 
 
 def test_only_cited_titles_are_listed_as_sources(harness: Harness) -> None:

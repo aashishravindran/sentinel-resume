@@ -42,20 +42,25 @@ def build_filter(tags: Set[str]) -> dict[str, Any]:
     return build_chroma_where(tags)
 
 
-def chunk_text(text: str, max_chars: int = 800) -> list[str]:
+def chunk_text(text: str, max_chars: int = 800, title: str | None = None) -> list[str]:
     """Section-aligned chunks, each prefixed with the document title and its section heading.
 
     A chunk like "- Stony Brook University ..." embeds poorly on its own; carrying
-    "Resume > Education" lets a question about education find it.
+    "Resume > Education" lets a question about education find it. Pass `title` to replace the
+    document's own heading, e.g. so "0001. Fail closed" says which project's ADR it is.
     """
-    title, sections = "", [("", [])]
+    doc_title, sections = "", [("", [])]
+    in_fence = False
     for line in text.splitlines():
-        if line.startswith("# ") and not title:
-            title = line[2:].strip()
-        elif line.startswith("## "):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+        if not in_fence and line.startswith("# ") and not doc_title:
+            doc_title = line[2:].strip()
+        elif not in_fence and line.startswith("## "):
             sections.append((line[3:].strip(), []))
         else:
             sections[-1][1].append(line)
+    title = title or doc_title
 
     chunks: list[str] = []
     for heading, lines in sections:
@@ -121,13 +126,17 @@ class S3VectorsKnowledge(KnowledgeConnector):
         access_tags: list[str],
         doc_id: str,
         metadata: Mapping[str, MetadataValue] | None = None,
+        heading: str | None = None,
     ) -> None:
+        """`heading` replaces the document's own title in every chunk's prefix (see chunk_text)."""
         doc = {**(metadata or {}), "doc_id": validate_doc_id(doc_id)}
         stamped = stamp_metadata(access_tags, doc)
-        await asyncio.to_thread(self._ingest, text, stamped, doc_id)
+        await asyncio.to_thread(self._ingest, text, stamped, doc_id, heading)
 
-    def _ingest(self, text: str, stamped: dict[str, MetadataValue], doc_id: str) -> None:
-        pieces = chunk_text(text)
+    def _ingest(
+        self, text: str, stamped: dict[str, MetadataValue], doc_id: str, heading: str | None
+    ) -> None:
+        pieces = chunk_text(text, title=heading)
         if len(pieces) > MAX_CHUNKS_PER_DOC:
             raise ValueError(f"{doc_id} has {len(pieces)} chunks; max is {MAX_CHUNKS_PER_DOC}")
         # Replace the whole document, so a shorter revision leaves no stale tail chunks.
@@ -145,3 +154,21 @@ class S3VectorsKnowledge(KnowledgeConnector):
             for i, piece in enumerate(pieces)
         ]
         self.client.put_vectors(vectorBucketName=self.bucket, indexName=self.index, vectors=vectors)
+
+    def prune(self, keep: Set[str]) -> list[str]:
+        """Delete every vector whose document is not in `keep`; returns the removed doc IDs."""
+        stale: list[str] = []
+        kwargs: dict[str, Any] = {"vectorBucketName": self.bucket, "indexName": self.index}
+        while True:
+            page = self.client.list_vectors(**kwargs)
+            stale += [
+                v["key"] for v in page.get("vectors", []) if v["key"].split("#")[0] not in keep
+            ]
+            if not page.get("nextToken"):
+                break
+            kwargs["nextToken"] = page["nextToken"]
+        for i in range(0, len(stale), 500):
+            self.client.delete_vectors(
+                vectorBucketName=self.bucket, indexName=self.index, keys=stale[i : i + 500]
+            )
+        return sorted({k.split("#")[0] for k in stale})

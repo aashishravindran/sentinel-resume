@@ -13,7 +13,7 @@ class Limits:
     global_chat_per_day: int = 1500
     signups_per_day: int = 50
     max_query_chars: int = 1000
-    n_results: int = 6
+    n_results: int = 8
 
 
 @dataclass(frozen=True)

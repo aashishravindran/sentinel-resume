@@ -23,6 +23,9 @@ next question, and revoking or expiring a grant takes it away just as fast.
 | Relevance floor | 0.05 (was 0.12) | Casual phrasing scored the right document at 0.11; the model's `NO_ANSWER` now does the filtering |
 | Answer model | Claude Haiku 4.5 on Bedrock, configurable | Nova Lite, Nova Pro | Nova over-refused authorized requests (an admin asking for the W-2); Haiku follows the "access already enforced" instruction ([0008](docs/adr/0008-model-sees-only-authorized-chunks.md)) |
 | API shape | Same origin under `/api` via CloudFront | Separate API domain with CORS | No CORS to misconfigure; build is deployment-agnostic ([0007](docs/adr/0007-same-origin-api.md)) |
+| Design library | Public READMEs, flows and ADRs of every public project, copied into `corpus/library/` by a manual sync; this repo's own read in place | Fetch from GitHub at deploy time; only the resume | Recruiters ask *why*; answers ground in the ADRs. Copies are reviewed in a PR, and deploys don't depend on GitHub ([0013](docs/adr/0013-design-library.md)) |
+| Chunk titles | Project + document title on every chunk (*Sentinel ADR 0001: ...*) | The document's own heading | Two projects both have an "ADR 0001"; the project name is what separates them in the embedding |
+| Answer formatting | A small Markdown subset (lists, bold, code) rendered as React elements | Plain text only | Haiku used bold anyway; rendering a safe subset reads better and can't inject HTML |
 | Frontend | Vite + React + `aws-amplify/auth` (auth only) | Amplify Hosting/Gen2; hosted UI | Small bundle, custom sign-up/TOTP flow, CDK owns all infra |
 
 ## Access model

@@ -32,6 +32,8 @@ uv pip install \
   "boto3>=1.42"
 
 cp -R "${ROOT}/sentinel_resume" "${OUT}/"
+# Titles and GitHub links of the public design docs, for the documents page (stdlib only).
+(cd "${ROOT}" && python3 -m sentinel_resume.library "${OUT}/sentinel_resume/library_index.json")
 find "${OUT}" -name "__pycache__" -prune -exec rm -rf {} +
 
 echo "Built ${OUT} ($(du -sh "${OUT}" | cut -f1))"

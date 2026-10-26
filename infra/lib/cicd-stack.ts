@@ -171,10 +171,10 @@ export class CiCdStack extends Stack {
     );
     assets.grantReadWrite(role);
 
-    // scripts/ingest_corpus.py
+    // scripts/ingest_corpus.py (ListVectors: prune documents that were removed)
     role.addToPolicy(
       new iam.PolicyStatement({
-        actions: ['s3vectors:PutVectors', 's3vectors:DeleteVectors'],
+        actions: ['s3vectors:PutVectors', 's3vectors:DeleteVectors', 's3vectors:ListVectors'],
         resources: [arn('s3vectors', `bucket/sentinel-resume-${account}/index/resume`)],
       }),
     );

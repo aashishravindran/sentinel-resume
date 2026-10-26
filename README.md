@@ -33,7 +33,11 @@ Nobody can read the W-2. Ask each of them the same questions and compare the ans
 
 The demo accounts are shared, so they also share rate limits (20 questions an hour each). Their grants
 expire periodically and are re-created by `scripts/test_users.py`. Sign up yourself to try the
-**Request access** flow.
+request-access flow on the **Documents** page.
+
+Beyond the resume, the assistant answers *why* questions about each project from its design records:
+*Why does Sentinel take identity from the transport?*, *Why S3 Vectors instead of OpenSearch?*,
+*How does VISION split work across agents?* See [Design library](#design-library).
 
 ## How access is enforced
 
@@ -48,7 +52,7 @@ recruiter ─► CloudFront ─► API Gateway (Cognito JWT, throttled) ─► L
 ```
 
 The model never sees a restricted chunk, so no prompt can talk it into revealing one. The chat page's
-**"Why can't I see that?"** panel shows your scope, the exact filter sent to the vector store, and how
+**"What the assistant saw"** panel shows your scope, the exact filter sent to the vector store, and how
 many results each layer removed.
 
 Built on [`sentinel-engine`](https://github.com/aashishravindran/sentinel-engine): `SentinelEngine`,
@@ -58,9 +62,23 @@ repo adds an S3 Vectors knowledge connector and a DynamoDB identity connector wi
 ### Request access
 
 Each sensitive document carries its own tag (`doc_offer_letter`, ...). A recruiter requests one from the
-**Request access** page with a reason; I get an email, and approving on `/admin` writes
+**Documents** page with a reason; I get an email, and approving on `/admin` writes
 `grant_doc_offer_letter = <expiry>` to their identity item. It applies on their next question and lapses on
 its own. Revoking removes it immediately.
+
+### Design library
+
+Every recruiter can also read the design records of Aashish's public projects: this repo's README,
+[FLOW.md](FLOW.md), [DECISIONS.md](DECISIONS.md) and ADRs (read in place), plus READMEs, architecture
+notes, threat models and ADRs copied from his other public repos into `corpus/library/` by
+`scripts/sync_library.py`. All are tagged `public`; a test fails if any of them quotes a figure or name
+from a restricted document. Each chunk is prefixed with its project and document title (*Sentinel ADR
+0002: Every failure denies > Decision*), so a "why" question finds the right project's ADR.
+See [ADR 0013](docs/adr/0013-design-library.md).
+
+```bash
+uv run python -m scripts.sync_library   # refresh corpus/library/ from GitHub, then commit it
+```
 
 ### Who can open `/admin`
 

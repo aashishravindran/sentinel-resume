@@ -1,0 +1,184 @@
+{
+  "documents": [
+    {
+      "doc_id": "lib-sentinel-connectors",
+      "title": "Sentinel: Connector Reference",
+      "file": "corpus/library/Sentinel/CONNECTORS.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/CONNECTORS.md"
+    },
+    {
+      "doc_id": "lib-sentinel-readme",
+      "title": "Sentinel: README",
+      "file": "corpus/library/Sentinel/README.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/README.md"
+    },
+    {
+      "doc_id": "lib-sentinel-results",
+      "title": "Sentinel: v1 Test Results",
+      "file": "corpus/library/Sentinel/RESULTS.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/RESULTS.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-adr-0001-identity-from-transport",
+      "title": "Sentinel ADR 0001: Identity comes from the transport, never from tool arguments",
+      "file": "corpus/library/Sentinel/docs/adr/0001-identity-from-transport.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/adr/0001-identity-from-transport.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-adr-0002-fail-closed",
+      "title": "Sentinel ADR 0002: Every failure denies",
+      "file": "corpus/library/Sentinel/docs/adr/0002-fail-closed.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/adr/0002-fail-closed.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-adr-0003-groups-over-doc-ids",
+      "title": "Sentinel ADR 0003: Filter on access tags stamped at ingest, not on document IDs",
+      "file": "corpus/library/Sentinel/docs/adr/0003-groups-over-doc-ids.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/adr/0003-groups-over-doc-ids.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-adr-0004-interceptors-not-an-mcp-hop",
+      "title": "Sentinel ADR 0004: Gateway mode runs the engine inside the interceptors",
+      "file": "corpus/library/Sentinel/docs/adr/0004-interceptors-not-an-mcp-hop.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/adr/0004-interceptors-not-an-mcp-hop.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-adr-0005-admin-role-gating",
+      "title": "Sentinel ADR 0005: One server; admin tools gated by role",
+      "file": "corpus/library/Sentinel/docs/adr/0005-admin-role-gating.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/adr/0005-admin-role-gating.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-adr-0006-principal-envelope",
+      "title": "Sentinel ADR 0006: A signed principal envelope for the Lambda target",
+      "file": "corpus/library/Sentinel/docs/adr/0006-principal-envelope.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/adr/0006-principal-envelope.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-adr-0007-dynamodb-identity-for-gateway",
+      "title": "Sentinel ADR 0007: DynamoDB identity for Gateway mode; SpiceDB later",
+      "file": "corpus/library/Sentinel/docs/adr/0007-dynamodb-identity-for-gateway.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/adr/0007-dynamodb-identity-for-gateway.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-adr-0008-no-implicit-knowledge-base",
+      "title": "Sentinel ADR 0008: Infrastructure never creates a knowledge base implicitly",
+      "file": "corpus/library/Sentinel/docs/adr/0008-no-implicit-knowledge-base.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/adr/0008-no-implicit-knowledge-base.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-benchmarks",
+      "title": "Sentinel: Benchmarks",
+      "file": "corpus/library/Sentinel/docs/benchmarks.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/benchmarks.md"
+    },
+    {
+      "doc_id": "lib-sentinel-docs-threat-model",
+      "title": "Sentinel: Threat model",
+      "file": "corpus/library/Sentinel/docs/threat-model.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/docs/threat-model.md"
+    },
+    {
+      "doc_id": "lib-sentinel-infra-cdk-readme",
+      "title": "Sentinel: infra/cdk README",
+      "file": "corpus/library/Sentinel/infra/cdk/README.md",
+      "source": "https://github.com/aashishravindran/Sentinel/blob/master/infra/cdk/README.md"
+    },
+    {
+      "doc_id": "lib-sentinel-engine-readme",
+      "title": "sentinel-engine: README",
+      "file": "corpus/library/sentinel-engine/README.md",
+      "source": "https://github.com/aashishravindran/sentinel-engine/blob/main/README.md"
+    },
+    {
+      "doc_id": "lib-productionrag-architecture",
+      "title": "ProductionRAG: Architecture & Design Decisions",
+      "file": "corpus/library/ProductionRAG/ARCHITECTURE.md",
+      "source": "https://github.com/aashishravindran/ProductionRAG/blob/master/ARCHITECTURE.md"
+    },
+    {
+      "doc_id": "lib-productionrag-readme",
+      "title": "ProductionRAG: README",
+      "file": "corpus/library/ProductionRAG/README.md",
+      "source": "https://github.com/aashishravindran/ProductionRAG/blob/master/README.md"
+    },
+    {
+      "doc_id": "lib-productionrag-research-validation",
+      "title": "ProductionRAG: Academic Validation & Research Alignment",
+      "file": "corpus/library/ProductionRAG/RESEARCH_VALIDATION.md",
+      "source": "https://github.com/aashishravindran/ProductionRAG/blob/master/RESEARCH_VALIDATION.md"
+    },
+    {
+      "doc_id": "lib-super-duper-chat-bot-architecture",
+      "title": "Super Duper Chat Bot: Multi-Agent Assistant: LangGraph + Lambda + API Gateway",
+      "file": "corpus/library/super-duper-chat-bot/ARCHITECTURE.md",
+      "source": "https://github.com/aashishravindran/super-duper-chat-bot/blob/main/ARCHITECTURE.md"
+    },
+    {
+      "doc_id": "lib-super-duper-chat-bot-readme",
+      "title": "Super Duper Chat Bot: README",
+      "file": "corpus/library/super-duper-chat-bot/README.md",
+      "source": "https://github.com/aashishravindran/super-duper-chat-bot/blob/main/README.md"
+    },
+    {
+      "doc_id": "lib-vision-readme",
+      "title": "VISION: README",
+      "file": "corpus/library/VISION/README.md",
+      "source": "https://github.com/aashishravindran/VISION/blob/main/README.md"
+    },
+    {
+      "doc_id": "lib-agentic-fitness-app-readme",
+      "title": "Agentic Fitness App: README",
+      "file": "corpus/library/agentic-fitness-app/README.md",
+      "source": "https://github.com/aashishravindran/agentic-fitness-app/blob/main/README.md"
+    },
+    {
+      "doc_id": "lib-agentic-fitness-app-docs-architecture",
+      "title": "Agentic Fitness App: Architecture Documentation",
+      "file": "corpus/library/agentic-fitness-app/docs/ARCHITECTURE.md",
+      "source": "https://github.com/aashishravindran/agentic-fitness-app/blob/main/docs/ARCHITECTURE.md"
+    },
+    {
+      "doc_id": "lib-agentic-fitness-app-docs-fitness-rag-spec",
+      "title": "Agentic Fitness App: Fitness Agent RAG Specification (Local MVP)",
+      "file": "corpus/library/agentic-fitness-app/docs/FITNESS_RAG_SPEC.md",
+      "source": "https://github.com/aashishravindran/agentic-fitness-app/blob/main/docs/FITNESS_RAG_SPEC.md"
+    },
+    {
+      "doc_id": "lib-agentic-fitness-app-docs-hierarchical-system",
+      "title": "Agentic Fitness App: Hierarchical Multi-Agent System - Implementation Guide",
+      "file": "corpus/library/agentic-fitness-app/docs/HIERARCHICAL_SYSTEM.md",
+      "source": "https://github.com/aashishravindran/agentic-fitness-app/blob/main/docs/HIERARCHICAL_SYSTEM.md"
+    },
+    {
+      "doc_id": "lib-agentic-fitness-app-docs-persistence-spec",
+      "title": "Agentic Fitness App: Per-User Persistence & History-Based Fatigue",
+      "file": "corpus/library/agentic-fitness-app/docs/persistence_spec.md",
+      "source": "https://github.com/aashishravindran/agentic-fitness-app/blob/main/docs/persistence_spec.md"
+    },
+    {
+      "doc_id": "lib-supersetui-readme",
+      "title": "SuperSetUI: README",
+      "file": "corpus/library/SuperSetUI/README.md",
+      "source": "https://github.com/aashishravindran/SuperSetUI/blob/main/README.md"
+    },
+    {
+      "doc_id": "lib-aiagents-readme",
+      "title": "AiAgents: README",
+      "file": "corpus/library/AiAgents/README.md",
+      "source": "https://github.com/aashishravindran/AiAgents/blob/main/README.md"
+    },
+    {
+      "doc_id": "lib-steal-my-agents-readme",
+      "title": "steal-my-agents: README",
+      "file": "corpus/library/steal-my-agents/README.md",
+      "source": "https://github.com/aashishravindran/steal-my-agents/blob/main/README.md"
+    },
+    {
+      "doc_id": "lib-aashishravindran-readme",
+      "title": "GitHub profile: README",
+      "file": "corpus/library/aashishravindran/README.md",
+      "source": "https://github.com/aashishravindran/aashishravindran/blob/main/README.md"
+    }
+  ]
+}
