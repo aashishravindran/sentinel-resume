@@ -24,7 +24,7 @@ flowchart LR
   APIFN --> REQ[(DynamoDB requests)]
   APIFN --> AUD[(DynamoDB audit)]
   APIFN --> SSM[(SSM admin allowlist)]
-  APIFN --> SES[SES: email admin]
+  APIFN --> SNS[SNS alerts topic: email admin]
 ```
 
 ## 1. Sign-up
@@ -97,7 +97,7 @@ sequenceDiagram
   participant L as API Lambda
   participant Q as Requests table
   participant A as Audit table
-  participant E as SES
+  participant E as SNS alerts topic
   R->>L: GET /api/catalog
   L-->>R: documents, each with has_access / requestable / request status
   R->>L: POST /api/requests {tag, reason}

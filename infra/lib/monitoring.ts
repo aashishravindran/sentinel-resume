@@ -115,9 +115,6 @@ export class Monitoring extends Construct {
       2,
     );
 
-    // --- Activity worth knowing about --------------------------------------------------------
-    alarm('AccessRequest', app('AccessRequests'), 1, 'A recruiter asked for a restricted document. Review it on /admin.');
-
     // --- Dashboard ----------------------------------------------------------------------------
     const hourly = (name: string, label: string) => app(name, 'Sum', Duration.hours(1)).with({ label });
     const cf = (metricName: string, statistic = 'Sum') =>

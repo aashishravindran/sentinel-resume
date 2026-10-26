@@ -29,8 +29,8 @@ class Settings:
     embed_model_id: str
     user_pool_id: str
     admin_subs_param: str
-    admin_email: str
-    from_email: str
+    # SNS topic that emails the admin: alarms, and one message per access request.
+    alerts_topic_arn: str
     site_url: str
     require_admin_mfa: bool
     min_relevance: float
@@ -50,8 +50,7 @@ class Settings:
             embed_model_id=env.get("EMBED_MODEL_ID", "amazon.titan-embed-text-v2:0"),
             user_pool_id=env["SENTINEL_OIDC_ISSUER"].rstrip("/").rsplit("/", 1)[-1],
             admin_subs_param=env.get("ADMIN_SUBS_PARAM", "/sentinel-resume/admin-subs"),
-            admin_email=env.get("ADMIN_EMAIL", ""),
-            from_email=env.get("FROM_EMAIL", ""),
+            alerts_topic_arn=env.get("ALERTS_TOPIC_ARN", ""),
             site_url=env.get("SITE_URL", ""),
             require_admin_mfa=env.get("REQUIRE_ADMIN_MFA", "true").lower() == "true",
             min_relevance=float(env.get("MIN_RELEVANCE_SCORE", "0.05")),

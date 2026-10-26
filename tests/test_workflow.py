@@ -37,7 +37,9 @@ def test_request_approve_revoke(harness: Harness) -> None:
         "POST /requests", recruiter, {"tag": "doc_offer_letter", "reason": "Comparing offers"}
     )
     assert status == 200 and body["request"]["status"] == "pending"
-    assert harness.ses.sent and "Offer letter" in str(harness.ses.sent[0])
+    [message] = harness.sns.published
+    assert message["Subject"] == "Access request: Offer letter (2024)"
+    assert "Comparing offers" in message["Message"] and "/admin" in message["Message"]
 
     again = {"tag": "doc_offer_letter", "reason": "again"}
     status, _ = harness.call("POST /requests", recruiter, again)
@@ -210,3 +212,14 @@ def test_rate_limits_and_admin_probes_become_metrics(
     harness.call("GET /admin/overview", harness.token(RECRUITER, groups=["admin"]))
     out = capsys.readouterr().out
     assert '"AdminDenied": 1' in out
+
+
+def test_e2e_users_do_not_email_the_admin(harness: Harness) -> None:
+    harness.services.identity.table.update_item(
+        Key={"user_id": RECRUITER},
+        UpdateExpression="SET email = :e",
+        ExpressionAttributeValues={":e": "e2e-recruiter-abc@example.com"},
+    )
+    token = harness.token(RECRUITER)
+    status, _ = harness.call("POST /requests", token, {"tag": "doc_references", "reason": "e2e"})
+    assert status == 200 and harness.sns.published == []

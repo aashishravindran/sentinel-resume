@@ -108,12 +108,12 @@ class FakeCognito:
         return {"UserMFASettingList": ["SOFTWARE_TOKEN_MFA"] if Username in self.mfa else []}
 
 
-class FakeSES:
+class FakeSNS:
     def __init__(self) -> None:
-        self.sent: list[dict[str, Any]] = []
+        self.published: list[dict[str, Any]] = []
 
-    def send_email(self, **kw: Any) -> None:
-        self.sent.append(kw)
+    def publish(self, **kw: Any) -> None:
+        self.published.append(kw)
 
 
 def _tables() -> dict[str, Any]:
@@ -161,7 +161,7 @@ class Harness:
         key: Any,
         cognito: FakeCognito,
         ssm: FakeSSM,
-        ses: FakeSES,
+        sns: FakeSNS,
     ):
         self.services = services
         self.vectors = vectors
@@ -169,7 +169,7 @@ class Harness:
         self.key = key
         self.cognito = cognito
         self.ssm = ssm
-        self.ses = ses
+        self.sns = sns
 
     def token(
         self,
@@ -238,8 +238,7 @@ def harness() -> Any:
             embed_model_id="e",
             user_pool_id="us-east-1_TEST",
             admin_subs_param="/p",
-            admin_email="me@example.com",
-            from_email="me@example.com",
+            alerts_topic_arn="arn:aws:sns:us-east-1:123456789012:alerts",
             site_url="https://site",
             require_admin_mfa=True,
             min_relevance=0.0,
@@ -249,7 +248,7 @@ def harness() -> Any:
         vectors, model = FakeS3Vectors(), RecordingModel()
         knowledge = S3VectorsKnowledge(vectors, "b", "resume", HashEmbedder())
         engine = SentinelEngine(ExpiringDdbIdentity(identity), knowledge)
-        cognito, ssm, ses = FakeCognito(), FakeSSM(ADMIN), FakeSES()
+        cognito, ssm, sns = FakeCognito(), FakeSSM(ADMIN), FakeSNS()
         catalog = load_catalog()
         services = Services(
             settings=settings,
@@ -265,7 +264,7 @@ def harness() -> Any:
             admin=AdminGate(engine, ssm, cognito, "/p", "us-east-1_TEST", True),
             model=model,
             catalog=catalog,
-            ses=ses,
+            sns=sns,
         )
         ingest_corpus(knowledge)
         identity.ensure_user(RECRUITER, "recruiter@example.com")
@@ -277,4 +276,4 @@ def harness() -> Any:
             }
         )
         cognito.mfa.add(ADMIN)
-        yield Harness(services, vectors, model, key, cognito, ssm, ses)
+        yield Harness(services, vectors, model, key, cognito, ssm, sns)
