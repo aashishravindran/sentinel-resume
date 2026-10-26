@@ -1,5 +1,6 @@
-# Weekly version updates, plus security updates as soon as an advisory lands. Each PR runs the
-# required checks (tests, build, audits) before it can merge into master.
+# Security updates open as soon as an advisory lands (not grouped, so a fix is never held back).
+# Version updates arrive weekly as at most two PRs per directory: minor/patch, and majors. Majors
+# usually need code changes, so they are expected to fail checks until someone migrates.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -9,6 +10,9 @@ updates:
       frontend:
         patterns: ["*"]
         update-types: [minor, patch]
+      frontend-major:
+        patterns: ["*"]
+        update-types: [major]
   - package-ecosystem: npm
     directory: /infra
     schedule: { interval: weekly }
@@ -16,9 +20,18 @@ updates:
       infra:
         patterns: ["*"]
         update-types: [minor, patch]
+      infra-major:
+        patterns: ["*"]
+        update-types: [major]
   - package-ecosystem: uv
     directory: /
     schedule: { interval: weekly }
+    groups:
+      python:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      actions:
+        patterns: ["*"]
