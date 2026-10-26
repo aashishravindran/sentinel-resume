@@ -18,6 +18,10 @@ def _table(env_key: str) -> Any:
 
 
 def pre_sign_up(event: dict[str, Any], _context: Any) -> dict[str, Any]:
+    # The cap protects against public sign-up floods. Accounts created through the admin API
+    # (demo users and e2e users, on every deploy) are not sign-ups and must not use it up.
+    if event.get("triggerSource") != "PreSignUp_SignUp":
+        return event
     limit = int(os.environ.get("SIGNUPS_PER_DAY", "50"))
     try:
         RateLimiter(_table("RATELIMIT_TABLE")).hit("global#signup", limit, DAY)
