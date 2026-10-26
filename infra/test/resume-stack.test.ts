@@ -99,7 +99,10 @@ describe('ResumeStack', () => {
 
   test('budget alarm exists', () => {
     t.hasResourceProperties('AWS::Budgets::Budget', {
-      Budget: Match.objectLike({ BudgetLimit: { Amount: 10, Unit: 'USD' } }),
+      Budget: Match.objectLike({
+        BudgetLimit: { Amount: 10, Unit: 'USD' },
+        CostFilters: { TagKeyValue: ['user:app$sentinel-resume'] },
+      }),
     });
   });
 });
