@@ -31,6 +31,9 @@ export interface Me {
   scope: string[];
   grants: Record<string, number>;
   is_admin: boolean;
+  /** A named admin who still has to turn on an authenticator app. */
+  admin_needs_mfa: boolean;
+  pending_requests: number;
 }
 
 export interface Trace {

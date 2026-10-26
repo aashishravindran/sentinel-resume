@@ -42,7 +42,16 @@ export function App() {
         <nav aria-label="Main">
           <NavLink to="/chat">Chat</NavLink>
           <NavLink to="/access">Documents</NavLink>
-          {me?.is_admin && <NavLink to="/admin">Admin</NavLink>}
+          {(me?.is_admin || me?.admin_needs_mfa) && (
+            <NavLink to="/admin">
+              Admin
+              {me.pending_requests > 0 && (
+                <span className="count-badge" aria-label={`${me.pending_requests} waiting`}>
+                  {me.pending_requests}
+                </span>
+              )}
+            </NavLink>
+          )}
         </nav>
         <div className="account">
           <span>{me?.email}</span>
@@ -61,7 +70,7 @@ export function App() {
       <Routes>
         <Route path="/chat" element={<ChatPage me={me} />} />
         <Route path="/access" element={<AccessPage onChange={refreshMe} />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin" element={<AdminPage onChange={refreshMe} />} />
         <Route path="*" element={<Navigate to="/chat" replace />} />
       </Routes>
     </>
