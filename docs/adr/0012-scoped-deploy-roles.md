@@ -42,6 +42,11 @@ minutes.
 
 ## Consequences
 
+- Since whatever reaches master deploys, master is locked by a repository ruleset with no bypass actors:
+  changes only via squash-merged pull requests with the `python` and `build` checks green (from the
+  GitHub Actions app, so another app can't post a fake status), branch up to date, no force pushes
+  or deletion. No approving review is required: there is one maintainer and GitHub doesn't count
+  self-approval. Actions are restricted to an allowlist and SHA pinning is enforced.
 - A malicious master commit can break or rewrite this app, but cannot create an unbounded role, touch
   other stacks, or reach data outside the app's resources.
 - Cognito user pools, HTTP APIs and CloudFront distributions have generated IDs, so the execution role

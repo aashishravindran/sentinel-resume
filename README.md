@@ -135,7 +135,9 @@ the model.
 ## CI/CD
 
 Every push and pull request runs the tests, builds the SPA and Lambda bundle, and synthesizes the stack.
-A push to `master` that passes then deploys automatically:
+`master` only changes through a squash-merged pull request whose `python` and `build` checks passed
+(a repository ruleset with no bypass, not even for admins; no force pushes or deletion). The merge to
+`master` then deploys automatically:
 
 ```
 push to master ─► tests + build ─► deploy (GitHub OIDC role, no stored keys, scoped to this stack)
@@ -161,6 +163,10 @@ What the pipeline can do to the AWS account, at most:
 | GitHub deploy role (OIDC, `production` environment on master only) | change sets on the `SentinelResume` stack; upload to this app's asset bucket; pass one role to CloudFormation; the ingest, demo-user and e2e calls (Cognito admin calls only on the pool tagged `app=sentinel-resume`) | assume the CDK bootstrap roles; touch any other stack; create or edit IAM |
 | CloudFormation execution role | the services this stack uses, on `SentinelResume-*` names; create roles named `SentinelResume-*` **only** with the boundary attached | create a role without the boundary, remove a boundary, attach any managed policy but Lambda basic execution |
 | Permissions boundary on every app role | the app's tables, vector index, Bedrock, its SSM parameter, SES, its buckets, CloudFront invalidations | anything else, whatever policy a template attaches |
+
+Repository settings: Actions limited to GitHub-owned actions plus `aws-actions/configure-aws-credentials`
+and `astral-sh/setup-uv`, all pinned to commit SHAs (enforced); workflows from every outside
+contributor need approval; the default `GITHUB_TOKEN` is read-only.
 
 Role names are generated, the ARNs live in GitHub environment secrets, the account ID is masked in the
 (public) logs, actions are pinned to commit SHAs, and dependencies install before credentials exist.
