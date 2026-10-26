@@ -1,0 +1,44 @@
+I love building in public. Sometimes that means acknowledging mistakes—and fixing them—in public too.
+
+Sentinel v1 had a gap I want to talk about.
+
+I was building access control for AI retrieval, but the search tool accepted identity as an argument:
+
+secure_search(query, user_id)
+
+The permissions could be perfectly correct for the wrong person.
+
+If the model passed user_id="ceo", through prompt injection or a plain mistake, Sentinel would faithfully enforce the CEO’s access.
+
+I had put an important part of the security boundary under the model’s control.
+
+That’s what v2 fixes.
+
+Identity now comes from the connection: a verified user token for HTTP and AgentCore Gateway, or the configured launcher identity for local MCP. The search tool doesn’t accept a user ID.
+
+I also extracted sentinel-engine, the shared core that:
+• Looks up permissions on every call.
+• Pushes the access filter into the vector query.
+• Re-checks every returned chunk.
+• Denies access if identity or permission resolution fails.
+
+That same engine powers the MCP server and the Amazon Bedrock AgentCore Gateway integration. On Gateway, request and response interceptors enforce access around MCP tool calls.
+
+To make it tangible, I built sentinel-resume.
+
+Recruiters can ask about my resume, projects, and design decisions. Access to the demo offer letter, salary history, or references requires approval with an expiry. Revoke a grant, and the next question uses the updated permissions.
+
+There’s a “What the assistant saw” panel showing the scope, search filter, and retrieved context.
+
+The resume and projects are real. The restricted documents are synthetic.
+
+This project taught me to ask one more question after “Are the permissions correct?”:
+
+“Who gets to tell the system whose permissions to use?”
+
+Try it: https://d381grodpq0ta7.cloudfront.net
+Code + demo accounts: https://github.com/aashishravindran/sentinel-resume
+Sentinel: https://github.com/aashishravindran/Sentinel
+Engine: https://github.com/aashishravindran/sentinel-engine
+
+#BuildInPublic #AISecurity #RAG #MCP #AWS

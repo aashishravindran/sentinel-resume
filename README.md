@@ -137,6 +137,26 @@ sends one on sign-up.
 `chatModelId` defaults to Claude Haiku 4.5 (`us.anthropic.claude-haiku-4-5-20251001-v1:0`), called through Bedrock with the
 Lambda's IAM role (no API key). Any Bedrock model or inference profile works: `-c chatModelId=us.amazon.nova-lite-v1:0`.
 
+## Monitoring
+
+Everything lands in CloudWatch (30-day retention), and alarms email the admin through SNS.
+
+- **Logs:** one line per API call (route, status, user `sub`, source IP, user agent, latency) and one
+  per question (question, outcome, scope, what retrieval and the re-check did, citations, latency),
+  as JSON fields you can query in Logs Insights. Access requests, grants, denials, revokes and refused
+  admin calls also go to the audit table.
+- **Metrics** (namespace `SentinelResume`, written as Embedded Metric Format, no API calls): questions,
+  answers, model calls, sign-ups, access requests, 429s, refused admin calls, latency, and
+  `PostcheckDropped`, which must stay 0.
+- **Alarms (email):** filter bypass (first occurrence), admin probing, rate-limit storms, 80% of the
+  daily model budget and sign-up cap, budget exhausted, chat throttling, 500s, Lambda errors, slow
+  chat, and each new access request.
+- **Dashboard:** `SentinelResume` in CloudWatch: 24-hour totals, traffic, questions, recruiters,
+  abuse signals, latency, errors, and the latest questions and API calls.
+
+The site tells users their questions are logged for 30 days. Cost: about $5 a month (12 custom
+metrics, 13 alarms; the dashboard is within the free three).
+
 ## Develop
 
 ```bash

@@ -82,6 +82,21 @@ describe('ResumeStack', () => {
     t.hasResourceProperties('AWS::Cognito::UserPool', { UserPoolTags: { app: 'sentinel-resume' } });
   });
 
+  test('alerts go to the admin by email, and a filter bypass alarms on the first occurrence', () => {
+    t.hasResourceProperties('AWS::SNS::Subscription', { Protocol: 'email', Endpoint: 'admin@example.com' });
+    t.hasResourceProperties('AWS::CloudWatch::Alarm', {
+      MetricName: 'PostcheckDropped',
+      Namespace: 'SentinelResume',
+      Threshold: 1,
+      ComparisonOperator: 'GreaterThanOrEqualToThreshold',
+      AlarmActions: Match.anyValue(),
+    });
+    for (const alarm of Object.values(t.findResources('AWS::CloudWatch::Alarm'))) {
+      expect(alarm.Properties.AlarmActions).toHaveLength(1);
+    }
+    t.hasResourceProperties('AWS::CloudWatch::Dashboard', { DashboardName: 'SentinelResume' });
+  });
+
   test('budget alarm exists', () => {
     t.hasResourceProperties('AWS::Budgets::Budget', {
       Budget: Match.objectLike({ BudgetLimit: { Amount: 10, Unit: 'USD' } }),

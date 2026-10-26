@@ -20,6 +20,7 @@ import * as s3vectors from 'aws-cdk-lib/aws-s3vectors';
 import * as ses from 'aws-cdk-lib/aws-ses';
 import type { Construct } from 'constructs';
 import { APP_TAG_KEY, APP_TAG_VALUE, BOUNDARY_POLICY_NAME } from './cicd-stack';
+import { Monitoring } from './monitoring';
 
 export interface ResumeStackProps extends StackProps {
   /** Python bundle from scripts/build_lambda.sh. */
@@ -35,6 +36,9 @@ export interface ResumeStackProps extends StackProps {
 
 const EMBED_MODEL_ID = 'amazon.titan-embed-text-v2:0';
 const ADMIN_SUBS_PARAM = '/sentinel-resume/admin-subs';
+const SIGNUPS_PER_DAY = 50;
+// Matches Limits.global_chat_per_day in sentinel_resume/config.py.
+const MODEL_CALLS_PER_DAY = 1500;
 
 /** Recruiter-facing resume assistant: Cognito, HTTP API, Lambda, DynamoDB, S3 Vectors, CloudFront. */
 export class ResumeStack extends Stack {
@@ -98,7 +102,7 @@ export class ResumeStack extends Stack {
 
     // --- Cognito ----------------------------------------------------------------------------
     const preSignUp = fn('PreSignUp', 'sentinel_resume.triggers.pre_sign_up', {
-      environment: { RATELIMIT_TABLE: rateLimitTable.tableName, SIGNUPS_PER_DAY: '50' },
+      environment: { RATELIMIT_TABLE: rateLimitTable.tableName, SIGNUPS_PER_DAY: String(SIGNUPS_PER_DAY) },
     });
     const postConfirmation = fn('PostConfirmation', 'sentinel_resume.triggers.post_confirmation', {
       environment: { IDENTITY_TABLE: identityTable.tableName },
@@ -279,6 +283,23 @@ export class ResumeStack extends Stack {
       ],
     });
 
+    // --- Monitoring -------------------------------------------------------------------------
+    const monitoring = new Monitoring(this, 'Monitoring', {
+      alertEmail: props.adminEmail,
+      chatFn,
+      apiFn,
+      triggerFns: [preSignUp, postConfirmation],
+      apiId: api.apiId,
+      distributionId: distribution.distributionId,
+      apiLogGroups: [chatFn.logGroup, apiFn.logGroup],
+      chatsPerDayBudget: MODEL_CALLS_PER_DAY,
+      signupsPerDay: SIGNUPS_PER_DAY,
+    });
+
+    new CfnOutput(this, 'AlertsTopicArn', { value: monitoring.topic.topicArn });
+    new CfnOutput(this, 'DashboardUrl', {
+      value: `https://${this.region}.console.aws.amazon.com/cloudwatch/home?region=${this.region}#dashboards/dashboard/SentinelResume`,
+    });
     new CfnOutput(this, 'SiteUrl', { value: `https://${distribution.distributionDomainName}` });
     new CfnOutput(this, 'ApiEndpoint', { value: api.apiEndpoint });
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });

@@ -26,6 +26,7 @@ from sentinel_resume.identity import ExpiringDdbIdentity, IdentityStore
 from sentinel_resume.knowledge import S3VectorsKnowledge, TitanEmbedder, build_filter
 from sentinel_resume.library import load_index
 from sentinel_resume.llm import BedrockChatModel, ChatModel, answer, cited_titles
+from sentinel_resume.metrics import emit
 from sentinel_resume.ratelimit import RateLimited, RateLimiter
 from sentinel_resume.requests_store import DuplicateRequest, RequestNotPending, RequestsStore
 
@@ -187,6 +188,7 @@ async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
         raise HttpError(400, f"question is longer than {limits.max_query_chars} characters")
     s.limiter.hit(f"{p.user_id}#chat", limits.chat_per_hour, HOUR)
     s.limiter.hit(f"{p.user_id}#chat", limits.chat_per_day, DAY)
+    started = time.monotonic()
 
     # SentinelEngine.secure_search, step by step, so the page can show each layer's work.
     scope = await s.engine.resolve_scope(p.user_id)
@@ -203,7 +205,37 @@ async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
             {"title": c["metadata"].get("title", ""), "score": c["score"]} for c in relevant
         ],
     }
-    logger.info(json.dumps({"chat": {"user": p.user_id, **trace, "chunks": len(relevant)}}))
+    dropped = trace["dropped_by_postcheck"]
+
+    def finish(outcome: str, citations: list[str]) -> None:
+        # One line per question: what was asked, by whom, and what each layer did.
+        latency = round((time.monotonic() - started) * 1000)
+        logger.info(
+            "chat",
+            extra={
+                "chat": {
+                    "user": p.user_id,
+                    "question": question,
+                    "outcome": outcome,
+                    "scope": trace["scope"],
+                    "retrieved": trace["retrieved"],
+                    "dropped_by_postcheck": dropped,
+                    "below_relevance": trace["below_relevance"],
+                    "sent": [c["title"] for c in trace["chunks"]],
+                    "citations": citations,
+                    "latency_ms": latency,
+                }
+            },
+        )
+        emit(
+            Questions=1,
+            Answered=1 if outcome == "answered" else 0,
+            ModelCalls=0 if outcome == "nothing_relevant" else 1,
+            # Should always be 0: a non-zero value means the store ignored the filter.
+            PostcheckDropped=dropped,
+            ChatLatencyMs=latency,
+        )
+
     no_answer = {
         "answer": NO_RELEVANT_ACCESS + REQUEST_HINT,
         "answered": False,
@@ -211,22 +243,22 @@ async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
         "trace": trace,
     }
     if not relevant:
+        finish("nothing_relevant", [])
         return no_answer
 
     try:
         s.limiter.hit("global#bedrock", limits.global_chat_per_day, DAY)
     except RateLimited:
+        emit(BudgetExhausted=1)
         raise HttpError(503, RESTING) from None
     text = await asyncio.to_thread(answer, s.model, question, relevant)
     if text is None:
         # Same reply as finding nothing: an unanswerable question reveals nothing either way.
+        finish("no_answer", [])
         return no_answer
-    return {
-        "answer": text,
-        "answered": True,
-        "citations": cited_titles(text, relevant),
-        "trace": trace,
-    }
+    citations = cited_titles(text, relevant)
+    finish("answered", citations)
+    return {"answer": text, "answered": True, "citations": citations, "trace": trace}
 
 
 async def my_requests(s: Services, p: Principal, _: dict[str, Any]) -> Any:
@@ -251,6 +283,7 @@ async def create_request(s: Services, p: Principal, event: dict[str, Any]) -> An
     except DuplicateRequest:
         raise HttpError(409, "you already have an open request for that document") from None
     s.audit.record("request", p.user_id, tag=tag, email=email)
+    emit(AccessRequests=1)
     site = s.settings.site_url or (event.get("headers") or {}).get("origin", "")
     _notify_admin(s, email, doc, item["reason"], site)
     return {"request": _public_request(item)}
@@ -374,6 +407,35 @@ def _json_default(value: Any) -> Any:
 
 
 async def dispatch(services: Services, event: dict[str, Any]) -> dict[str, Any]:
+    """Route one API call, and log it: route, status, caller, source IP, user agent, latency."""
+    started = time.monotonic()
+    caller: dict[str, str] = {}
+    response = await _dispatch(services, event, caller)
+    status = response["statusCode"]
+    http = (event.get("requestContext") or {}).get("http") or {}
+    logger.info(
+        "request",
+        extra={
+            "request": {
+                "route": event.get("routeKey", ""),
+                "status": status,
+                "user": caller.get("user", ""),
+                "ip": http.get("sourceIp", ""),
+                "user_agent": str(http.get("userAgent", ""))[:200],
+                "latency_ms": round((time.monotonic() - started) * 1000),
+            }
+        },
+    )
+    if status == 429:
+        emit(RateLimited=1)
+    elif status >= 500 and status != 503:
+        emit(InternalErrors=1)
+    return response
+
+
+async def _dispatch(
+    services: Services, event: dict[str, Any], caller: dict[str, str]
+) -> dict[str, Any]:
     # CloudFront serves the API under /api on the site's own origin, so there is no CORS.
     route = ROUTES.get(event.get("routeKey", "").replace(" /api/", " /", 1))
     if route is None:
@@ -382,6 +444,7 @@ async def dispatch(services: Services, event: dict[str, Any]) -> dict[str, Any]:
     principal: Principal | None = None
     try:
         principal = authenticate(event.get("headers") or {}, services.verifier)
+        caller["user"] = principal.user_id
         if admin_only:
             await services.admin.require(principal)
         return _response(200, await handler(services, principal, event))
@@ -396,6 +459,7 @@ async def dispatch(services: Services, event: dict[str, Any]) -> dict[str, Any]:
     except NotAdmin as exc:
         actor = principal.user_id if principal else ""
         services.audit.record("admin_denied", actor, check=exc.check)
+        emit(AdminDenied=1)
         return _response(403, {"error": "forbidden"})
     except IdentityError:
         return _response(401, {"error": "unauthorized"})

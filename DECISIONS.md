@@ -64,6 +64,15 @@ next question, and revoking or expiring a grant takes it away just as fast.
 | Rollback | CloudFormation on failed deploy; `git revert` otherwise | Simple; failed smoke tests fail the run loudly |
 | Demo accounts | Public logins in the README, reset on every deploy | Instant try-out; the sensitive docs are synthetic |
 
+## Monitoring
+
+| Decision | Chosen | Turned down | Why |
+|---|---|---|---|
+| Metrics | Embedded Metric Format lines from the Lambdas | `PutMetricData`; log metric filters | No API calls, no extra IAM, and Lambda's JSON logging would hide our fields from metric filters |
+| Request logging | One structured line per call from the Lambda (with `sub`, IP, user agent) | API Gateway access logs | Same data plus the verified user, without log-delivery permissions on the deploy role |
+| Question logging | Full question text, 30 days, disclosed on the site | Not logging questions | After a public post, abuse and prompt-injection attempts are what you need to see |
+| Alerts | CloudWatch alarms to an SNS email topic; a filter bypass alarms on the first event | Paging service | One maintainer; email is enough, and SNS works while SES is in the sandbox |
+
 ## Dependency security
 
 | Decision | Chosen | Why |

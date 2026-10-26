@@ -1,5 +1,10 @@
 """Request access, admin approval, revocation, rate limits and the admin gate."""
 
+import json
+import logging
+
+import pytest
+
 from tests.conftest import ADMIN, RECRUITER, Harness
 
 
@@ -172,3 +177,36 @@ def test_me_shows_a_named_admin_the_way_to_set_up_mfa(harness: Harness) -> None:
     # A recruiter claiming the group learns nothing.
     body = harness.call("GET /me", harness.token(RECRUITER, groups=["admin"]))[1]
     assert body["is_admin"] is False and body["admin_needs_mfa"] is False
+
+
+def test_every_call_and_question_is_logged_with_metrics(
+    harness: Harness, caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    caplog.set_level(logging.INFO, logger="sentinel_resume")
+    status, _ = harness.call(
+        "POST /chat", harness.token(RECRUITER), {"question": "Where did he study?"}
+    )
+    assert status == 200
+
+    records = {r.getMessage(): r for r in caplog.records}
+    chat = records["chat"].__dict__["chat"]
+    assert chat["question"] == "Where did he study?" and chat["user"] == RECRUITER
+    assert chat["outcome"] in {"answered", "no_answer", "nothing_relevant"}
+    assert chat["dropped_by_postcheck"] == 0
+    request = records["request"].__dict__["request"]
+    assert request["route"].endswith("/chat") and request["status"] == 200
+
+    metrics = [
+        json.loads(line) for line in capsys.readouterr().out.splitlines() if '"_aws"' in line
+    ]
+    assert any(m.get("Questions") == 1 and m.get("PostcheckDropped") == 0 for m in metrics)
+    names = {d["Name"] for m in metrics for d in m["_aws"]["CloudWatchMetrics"][0]["Metrics"]}
+    assert {"Questions", "ChatLatencyMs"} <= names
+
+
+def test_rate_limits_and_admin_probes_become_metrics(
+    harness: Harness, capsys: pytest.CaptureFixture[str]
+) -> None:
+    harness.call("GET /admin/overview", harness.token(RECRUITER, groups=["admin"]))
+    out = capsys.readouterr().out
+    assert '"AdminDenied": 1' in out
