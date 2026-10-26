@@ -1,6 +1,6 @@
 # Aashish Ravindran: Resume
 
-Contact: raashish5594.ar@gmail.com · https://www.linkedin.com/in/aashish-ravindran-546b89aa/
+Contact: raashish5594.ar@gmail.com · LinkedIn: https://www.linkedin.com/in/aashish-ravindran-546b89aa/ · GitHub: https://github.com/aashishravindran · Portfolio: https://aashishravindran.github.io
 
 ## Professional summary
 
@@ -12,6 +12,7 @@ Impact-focused software engineer with 7+ years of experience delivering projects
 - Spearheaded the end-to-end delivery of asynchronous APIs for automated quota utilization reporting, achieving high-performance analysis (under 2 seconds) for 99% of accounts.
 - Architected the team's first AI agents using Amazon Bedrock and RAG (Retrieval-Augmented Generation); established a high-precision Knowledge Base system achieving 80% accuracy in automated responses using Bedrock's APIs. Built agents using the supervisor/subagents model using Kiro.
 - Built the team's inaugural Model Context Protocol (MCP) server to streamline log analysis using AWS CloudWatch, which resulted in a 25% reduction in ops pain.
+- Reduced quota approval times from days to minutes and accelerated infrastructure deployments by 85%.
 - Applied AWS's Hire and Develop the Best leadership principle and mentored 3 interns, all of whom received return offers.
 
 ## Experience: Software Development Engineer I, Amazon Web Services (March 2020 to June 2022)
@@ -30,6 +31,31 @@ Impact-focused software engineer with 7+ years of experience delivering projects
 - Stony Brook University: Master of Science in Computer Engineering (August 2018 to December 2020)
 - Kumaraguru College of Technology: Bachelor of Engineering in Electrical and Electronics Engineering (June 2012 to April 2016)
 
+## Open source (2026)
+
+Builds permission-aware and agentic AI systems in public; details in the Projects document.
+
+- Sentinel and sentinel-engine: permission-aware retrieval for AI agents (MCP server, Bedrock
+  AgentCore Gateway interceptors, policy engine), with ADRs, a threat model and red-team tests.
+- sentinel-resume: this assistant, a serverless Sentinel demo on AWS.
+- VISION (multi-agent finance research, OpenAI Agents SDK), Super Duper Chat Bot (LangGraph,
+  hybrid RAG, GitHub MCP), ProductionRAG (hybrid retrieval and reranking), Agentic Fitness App.
+
 ## Skills
 
-Java, Ruby, Python, software development, DynamoDB, Lambda, serverless, MCP, Amazon Bedrock, RAG, AI agents, QlikView, Qlik Sense.
+- Languages: Java, Python, Ruby, TypeScript, JavaScript.
+- AWS: DynamoDB, Lambda, API Gateway, SNS, CloudWatch,
+  Cognito, S3 and S3 Vectors, CloudFront, CDK and CloudFormation, IAM, Amazon Bedrock (Knowledge
+  Bases, AgentCore), Service Quotas.
+- AI: RAG (hybrid BM25 + vector search, reranking, query routing), AI agents (supervisor /
+  sub-agent, LangGraph, OpenAI Agents SDK, Strands), Model Context Protocol (MCP), access control
+  for retrieval.
+- Practices: deployment safety and change management (Change Management Bar Raiser), CI/CD,
+  threat modeling, mentoring.
+- Other: React, FastAPI, ChromaDB, SpiceDB, QlikView, Qlik Sense.
+
+## Outside work
+
+Runs @shutterquests, a Pacific Northwest landscape photography account (sunrises, aurora borealis,
+edited in Adobe Lightroom); hikes U.S. national parks, North Cascades and Mount Rainier most often;
+lifts and trains; plays doubles badminton at a local club.

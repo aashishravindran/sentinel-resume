@@ -4,6 +4,7 @@ import asyncio
 import base64
 import json
 import logging
+import re
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -23,6 +24,7 @@ from sentinel_resume.catalog import Doc, load_catalog, requestable_tags
 from sentinel_resume.config import Settings
 from sentinel_resume.identity import ExpiringDdbIdentity, IdentityStore
 from sentinel_resume.knowledge import S3VectorsKnowledge, TitanEmbedder, build_filter
+from sentinel_resume.library import load_index
 from sentinel_resume.llm import BedrockChatModel, ChatModel, answer, cited_titles
 from sentinel_resume.ratelimit import RateLimited, RateLimiter
 from sentinel_resume.requests_store import DuplicateRequest, RequestNotPending, RequestsStore
@@ -33,7 +35,7 @@ logger.setLevel(logging.INFO)
 HOUR, DAY = 3600, 86400
 MAX_GRANT_MINUTES = 30 * 24 * 60
 DEFAULT_GRANT_MINUTES = 7 * 24 * 60
-REQUEST_HINT = " You can ask for more on the Request access page."
+REQUEST_HINT = " You can request restricted documents on the Documents page."
 RESTING = "The demo has hit its daily budget and is resting. Please come back tomorrow."
 
 
@@ -146,7 +148,9 @@ async def catalog(s: Services, p: Principal, _: dict[str, Any]) -> Any:
                 "request": _public_request(requests.get(d.tag)),
             }
             for d in s.catalog
-        ]
+        ],
+        # Public design docs: everyone can read these, so listing them reveals nothing.
+        "library": load_index(),
     }
 
 
@@ -155,6 +159,19 @@ def _public_request(item: dict[str, Any] | None) -> dict[str, Any] | None:
         return None
     keys = ("request_id", "tag", "status", "reason", "created_at", "decided_at", "expires_at")
     return {k: item[k] for k in keys if k in item}
+
+
+_ABOUT_THIS_SITE = re.compile(
+    r"\b(here|this (site|app|assistant|chat(bot)?|demo|page)|how (do|does) you work)\b", re.I
+)
+
+
+def search_query(question: str) -> str:
+    """The text embedded for search. "How do you work?" says nothing about which project it means;
+    naming this one keeps other projects' architecture docs from outranking it."""
+    if _ABOUT_THIS_SITE.search(question):
+        return f"{question} (Resume assistant, sentinel-resume)"
+    return question
 
 
 async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
@@ -169,7 +186,7 @@ async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
 
     # SentinelEngine.secure_search, step by step, so the page can show each layer's work.
     scope = await s.engine.resolve_scope(p.user_id)
-    retrieved = await s.knowledge.search(question, scope, limits.n_results)
+    retrieved = await s.knowledge.search(search_query(question), scope, limits.n_results)
     authorized = authorize_chunks(retrieved, scope)
     relevant = filter_relevant(authorized, s.settings.min_relevance)
     trace = {
@@ -183,7 +200,12 @@ async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
         ],
     }
     logger.info(json.dumps({"chat": {"user": p.user_id, **trace, "chunks": len(relevant)}}))
-    no_answer = {"answer": NO_RELEVANT_ACCESS + REQUEST_HINT, "citations": [], "trace": trace}
+    no_answer = {
+        "answer": NO_RELEVANT_ACCESS + REQUEST_HINT,
+        "answered": False,
+        "citations": [],
+        "trace": trace,
+    }
     if not relevant:
         return no_answer
 
@@ -195,7 +217,12 @@ async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
     if text is None:
         # Same reply as finding nothing: an unanswerable question reveals nothing either way.
         return no_answer
-    return {"answer": text, "citations": cited_titles(text, relevant), "trace": trace}
+    return {
+        "answer": text,
+        "answered": True,
+        "citations": cited_titles(text, relevant),
+        "trace": trace,
+    }
 
 
 async def my_requests(s: Services, p: Principal, _: dict[str, Any]) -> Any:

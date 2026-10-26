@@ -44,7 +44,7 @@ export function AuthPanel({ onSignedIn }: { onSignedIn: () => void }) {
   };
 
   return (
-    <section className="card auth">
+    <section className="panel auth">
       {mode === 'signUp' && (
         <form onSubmit={run(async () => {
           await signUp({ username: email, password, options: { userAttributes: { email } } });

@@ -41,11 +41,13 @@ export function AdminPage() {
   if (forbidden) {
     return (
       <main className="page">
-        <h1>Admin</h1>
-        <p>
-          This page is only for admins listed in <code>infra/admins.json</code>. Admins must also turn on an
-          authenticator app.
-        </p>
+        <header className="page-head">
+          <h1>Admin</h1>
+          <p>
+            Only admins listed in <code>infra/admins.json</code> can use this page, and only after turning on an
+            authenticator app. If you're on the list, set it up below.
+          </p>
+        </header>
         <MfaSetup onDone={load} />
       </main>
     );
@@ -53,50 +55,93 @@ export function AdminPage() {
 
   return (
     <main className="page">
-      <h1>Access requests</h1>
+      <header className="page-head">
+        <h1>Access requests</h1>
+        <p>
+          Approve a request to open one document to one recruiter for the time you choose. Revoking takes effect on
+          their next question.
+        </p>
+      </header>
       {error && <p className="error">{error}</p>}
-      {!data && !error && <p className="muted">Loading…</p>}
+      {!data && !error && <p className="muted">Loading requests…</p>}
       {data && (
         <>
-          {data.pending.length === 0 && <p className="muted">No pending requests.</p>}
-          {data.pending.map((r) => (
-            <PendingRow key={r.request_id} request={r} act={act} />
-          ))}
-
-          <h2>Active grants</h2>
-          {data.grants.length === 0 && <p className="muted">Nobody has extra access right now.</p>}
-          <table>
-            <tbody>
-              {data.grants.map((g) => (
-                <tr key={`${g.user_id}:${g.tag}`}>
-                  <td>{g.email || g.user_id}</td>
-                  <td>
-                    <code className="tag">{g.tag}</code>
-                  </td>
-                  <td>until {when(g.expires_at)}</td>
-                  <td>
-                    <button className="danger" onClick={() => act('/admin/grants/revoke', { user_id: g.user_id, tag: g.tag })}>
-                      Revoke
-                    </button>
-                  </td>
-                </tr>
+          <section className="section" aria-labelledby="pending">
+            <h2 id="pending">Waiting for you</h2>
+            {data.pending.length === 0 && <p>No requests are waiting.</p>}
+            <ul className="ledger">
+              {data.pending.map((r) => (
+                <PendingRow key={r.request_id} request={r} act={act} />
               ))}
-            </tbody>
-          </table>
+            </ul>
+          </section>
 
-          <h2>Today's audit log</h2>
-          <table className="audit">
-            <tbody>
-              {data.audit.map((a, i) => (
-                <tr key={i}>
-                  <td>{when(a.at)}</td>
-                  <td>{a.action}</td>
-                  <td>{a.email || a.subject || a.actor}</td>
-                  <td>{a.tag ?? a.check ?? ''}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <section className="section" aria-labelledby="grants">
+            <h2 id="grants">Open grants</h2>
+            {data.grants.length === 0 && <p>Nobody has extra access right now.</p>}
+            {data.grants.length > 0 && (
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Recruiter</th>
+                      <th>Document tag</th>
+                      <th>Open until</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.grants.map((g) => (
+                      <tr key={`${g.user_id}:${g.tag}`}>
+                        <td>{g.email || g.user_id}</td>
+                        <td>
+                          <code className="tag">{g.tag}</code>
+                        </td>
+                        <td>{when(g.expires_at)}</td>
+                        <td>
+                          <button
+                            className="danger"
+                            onClick={() => act('/admin/grants/revoke', { user_id: g.user_id, tag: g.tag })}
+                          >
+                            Revoke
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="section" aria-labelledby="audit">
+            <h2 id="audit">Today's audit log</h2>
+            {data.audit.length === 0 && <p>Nothing has happened today.</p>}
+            {data.audit.length > 0 && (
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Action</th>
+                      <th>Who</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.audit.map((a, i) => (
+                      <tr key={i}>
+                        <td>{when(a.at)}</td>
+                        <td>{a.action}</td>
+                        <td>{a.email || a.subject || a.actor}</td>
+                        <td>{a.tag ?? a.check ?? ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         </>
       )}
     </main>
@@ -107,11 +152,13 @@ function PendingRow({ request, act }: { request: AccessRequest; act: (path: stri
   const [minutes, setMinutes] = useState(10080);
   const id = encodeURIComponent(request.request_id);
   return (
-    <article className="card pending-row">
+    <li className="request">
       <div>
-        <strong>{request.email || request.user_id}</strong> wants <code className="tag">{request.tag}</code>
-        <p>“{request.reason}”</p>
-        <small className="muted">{when(request.created_at)}</small>
+        <h3>
+          {request.email || request.user_id} wants <code className="tag">{request.tag}</code>
+        </h3>
+        <blockquote>{request.reason}</blockquote>
+        <small>Requested {when(request.created_at)}</small>
       </div>
       <div className="actions">
         <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} aria-label="Grant duration">
@@ -126,7 +173,7 @@ function PendingRow({ request, act }: { request: AccessRequest; act: (path: stri
           Deny
         </button>
       </div>
-    </article>
+    </li>
   );
 }
 
@@ -137,7 +184,7 @@ function MfaSetup({ onDone }: { onDone: () => void }) {
   const [message, setMessage] = useState('');
 
   return (
-    <section className="card">
+    <section className="panel mfa">
       <h2>Authenticator app</h2>
       {!secret && (
         <button
@@ -152,12 +199,13 @@ function MfaSetup({ onDone }: { onDone: () => void }) {
       )}
       {secret && (
         <form
+          className="mfa"
           onSubmit={async (e) => {
             e.preventDefault();
             try {
               await verifyTOTPSetup({ code: code.trim() });
               await updateMFAPreference({ totp: 'PREFERRED' });
-              setMessage('Authenticator enabled.');
+              setMessage('Authenticator turned on. Reloading the admin page.');
               onDone();
             } catch (err) {
               setMessage(err instanceof Error ? err.message : String(err));
@@ -175,7 +223,7 @@ function MfaSetup({ onDone }: { onDone: () => void }) {
             Code from the app
             <input inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} required />
           </label>
-          <button>Verify</button>
+          <button>Turn on</button>
         </form>
       )}
       {message && <p>{message}</p>}

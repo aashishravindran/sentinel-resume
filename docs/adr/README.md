@@ -14,6 +14,7 @@
 | [0010](0010-synthetic-sensitive-documents.md) | Real resume, synthetic sensitive documents | Accepted |
 | [0011](0011-github-oidc-continuous-deploy.md) | Continuous deploy from master through GitHub OIDC | Accepted |
 | [0012](0012-scoped-deploy-roles.md) | Scoped deploy roles instead of the CDK bootstrap roles | Accepted |
+| [0013](0013-design-library.md) | A public design library, so "why" questions are grounded | Accepted |
 
 Sentinel's own ADRs (identity from the transport, fail closed, tags over document IDs) apply here
 unchanged: https://github.com/aashishravindran/Sentinel/tree/master/docs/adr
