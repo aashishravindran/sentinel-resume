@@ -46,6 +46,9 @@ export class ResumeStack extends Stack {
     super(scope, id, props);
     // Created by SentinelResumeCiCd. The execution role refuses to create a role without it.
     iam.PermissionsBoundary.of(this).apply(iam.ManagedPolicy.fromManagedPolicyName(this, 'Boundary', BOUNDARY_POLICY_NAME));
+    // On every resource: the deploy role's Cognito admin calls only work on a pool with this tag,
+    // and the budget below counts only spend carrying it (once it is an active cost allocation tag).
+    Tags.of(this).add(APP_TAG_KEY, APP_TAG_VALUE);
 
     // --- Data -------------------------------------------------------------------------------
     const table = (name: string, pk: string, ttl?: string) =>
@@ -123,8 +126,6 @@ export class ResumeStack extends Stack {
       lambdaTriggers: { preSignUp, postConfirmation },
       removalPolicy: RemovalPolicy.DESTROY,
     });
-    // The deploy role's Cognito admin calls (demo users, e2e) only work on a pool with this tag.
-    Tags.of(userPool).add(APP_TAG_KEY, APP_TAG_VALUE);
     const client = userPool.addClient('Web', {
       authFlows: { userSrp: true, userPassword: true },
       generateSecret: false,
@@ -274,6 +275,8 @@ export class ResumeStack extends Stack {
         budgetType: 'COST',
         timeUnit: 'MONTHLY',
         budgetLimit: { amount: props.monthlyBudgetUsd ?? 10, unit: 'USD' },
+        // This app's spend only. Unfiltered, a budget counts the whole account.
+        costFilters: { TagKeyValue: [`user:${APP_TAG_KEY}$${APP_TAG_VALUE}`] },
       },
       notificationsWithSubscribers: [
         {

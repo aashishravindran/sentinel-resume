@@ -103,5 +103,9 @@ A newly published advisory fails the next PR until it is fixed. That is intended
   account (ADR 0012). Whoever can push to master can still change this app freely.
 - **Shared demo accounts** can be abused (someone could change a password or enable MFA on one);
   every deploy resets them, and `scripts/test_users.py create` does it on demand.
+- **Demo budget needs an active cost allocation tag**: every resource carries `app=sentinel-resume`
+  and the $10 budget filters on it, but AWS only counts it after the tag key is activated in Billing
+  (possible about a day after first use). Until then the budget reads $0. Account-wide budgets
+  ($100 and $150, outside this stack) cover total spend.
 - **Custom domain**: the site runs on the CloudFront domain; add a certificate and alias for a
   vanity URL.
