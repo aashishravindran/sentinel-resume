@@ -123,12 +123,16 @@ def _email(principal: Principal, services: Services) -> str:
 
 async def me(s: Services, p: Principal, _: dict[str, Any]) -> Any:
     item = s.identity.item(p.user_id)
+    admin = await s.admin.status(p)
     return {
         "user_id": p.user_id,
         "email": item.get("email", ""),
         "scope": sorted(s.identity.tags(p.user_id) - {"sentinel_admin"}),
         "grants": s.identity.grants(p.user_id),
-        "is_admin": await s.admin.check(p),
+        "is_admin": admin == "admin",
+        # Named admin without TOTP: show the admin link so they can set it up there.
+        "admin_needs_mfa": admin == "needs_mfa",
+        "pending_requests": len(s.requests.by_status("pending")) if admin == "admin" else 0,
     }
 
 

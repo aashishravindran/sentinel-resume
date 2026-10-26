@@ -9,7 +9,7 @@ const DURATIONS = [
   { label: '30 days', minutes: 43200 },
 ];
 
-export function AdminPage() {
+export function AdminPage({ onChange }: { onChange: () => void }) {
   const [data, setData] = useState<AdminOverview | null>(null);
   const [error, setError] = useState('');
   const [forbidden, setForbidden] = useState(false);
@@ -19,11 +19,12 @@ export function AdminPage() {
     try {
       setData(await api<AdminOverview>('/admin/overview'));
       setForbidden(false);
+      onChange();
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) setForbidden(true);
       else setError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [onChange]);
 
   useEffect(() => {
     load();
@@ -44,8 +45,8 @@ export function AdminPage() {
         <header className="page-head">
           <h1>Admin</h1>
           <p>
-            Only admins listed in <code>infra/admins.json</code> can use this page, and only after turning on an
-            authenticator app. If you're on the list, set it up below.
+            Turn on an authenticator app to open the admin page. Only people listed in <code>infra/admins.json</code>{' '}
+            get past this step; for anyone else the page stays closed.
           </p>
         </header>
         <MfaSetup onDone={load} />

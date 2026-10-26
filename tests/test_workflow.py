@@ -152,3 +152,23 @@ def test_only_cited_titles_are_listed_as_sources(harness: Harness) -> None:
     harness.model.reply = "He studied at Stony Brook."
     _, body = harness.call("POST /chat", harness.token(RECRUITER), {"question": "education"})
     assert body["citations"] == []
+
+
+def test_me_shows_a_named_admin_the_way_to_set_up_mfa(harness: Harness) -> None:
+    harness.cognito.mfa.clear()
+    status, body = harness.call("GET /me", _admin(harness))
+    assert status == 200
+    assert body["is_admin"] is False and body["admin_needs_mfa"] is True
+    assert body["pending_requests"] == 0
+
+    harness.cognito.mfa.add(ADMIN)
+    harness.call(
+        "POST /requests", harness.token(RECRUITER), {"tag": "doc_references", "reason": "r"}
+    )
+    body = harness.call("GET /me", _admin(harness))[1]
+    assert body["is_admin"] is True and body["admin_needs_mfa"] is False
+    assert body["pending_requests"] == 1
+
+    # A recruiter claiming the group learns nothing.
+    body = harness.call("GET /me", harness.token(RECRUITER, groups=["admin"]))[1]
+    assert body["is_admin"] is False and body["admin_needs_mfa"] is False

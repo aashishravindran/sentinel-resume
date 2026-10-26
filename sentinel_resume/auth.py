@@ -78,6 +78,18 @@ class AdminGate:
             if not mfa:
                 raise NotAdmin("mfa")
 
+    async def status(self, principal: Principal) -> str | None:
+        """ "admin", "needs_mfa" (a named admin who hasn't turned on TOTP yet), or None.
+
+        The page needs the middle state: TOTP is set up on the admin page itself, so hiding the
+        link until every check passes would leave a new admin no way in.
+        """
+        try:
+            await self.require(principal)
+        except NotAdmin as exc:
+            return "needs_mfa" if exc.check == "mfa" else None
+        return "admin"
+
     async def check(self, principal: Principal) -> bool:
         try:
             await self.require(principal)
