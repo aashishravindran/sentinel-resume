@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "Resume assistant demo: recruiters chat with a RAG assistant that retrieves only what they may read"
 requires-python = ">=3.12"
 dependencies = [
-    "sentinel-engine",
+    # Published from github.com/aashishravindran/sentinel-engine; imported as sentinel_engine.
+    "sentinel-authz>=0.2,<0.3",
     "boto3>=1.42",
 ]
 
@@ -18,9 +19,6 @@ dev = [
     "pyright>=1.1.380",
     "pypdf>=4.0",
 ]
-
-[tool.uv.sources]
-sentinel-engine = { git = "https://github.com/aashishravindran/sentinel-engine", tag = "v0.1.0" }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

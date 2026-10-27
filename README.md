@@ -55,7 +55,8 @@ The model never sees a restricted chunk, so no prompt can talk it into revealing
 **"What the assistant saw"** panel shows your scope, the exact filter sent to the vector store, and how
 many results each layer removed.
 
-Built on [`sentinel-engine`](https://github.com/aashishravindran/sentinel-engine): `SentinelEngine`,
+Built on [`sentinel-authz`](https://pypi.org/project/sentinel-authz/) (source:
+[sentinel-engine](https://github.com/aashishravindran/sentinel-engine), imported as `sentinel_engine`): `SentinelEngine`,
 `TokenVerifier`, the shared filter builder, ingest stamping and the post-filter all come from it. This
 repo adds an S3 Vectors knowledge connector and a DynamoDB identity connector with expiring grants.
 
