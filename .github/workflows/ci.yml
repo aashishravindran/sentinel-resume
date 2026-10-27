@@ -25,10 +25,9 @@ jobs:
       - name: Unit, workflow, trigger and red-team tests
         run: uv run pytest -q
       # Any known vulnerability in a locked dependency fails the required check.
-      # (sentinel-engine is a git dependency; it is audited in its own repo.)
       - name: Audit Python dependencies
         run: |
-          uv export --no-hashes --all-groups --no-emit-project | grep -v '^ *#' | grep -v 'git+' > requirements-audit.txt
+          uv export --no-hashes --all-groups --no-emit-project | grep -v '^ *#' > requirements-audit.txt
           uvx pip-audit@2.9.0 -r requirements-audit.txt --no-deps --disable-pip --strict
 
   build:

@@ -78,6 +78,7 @@ next question, and revoking or expiring a grant takes it away just as fast.
 
 | Decision | Chosen | Why |
 |---|---|---|
+| Engine dependency | `sentinel-authz` from PyPI, pinned in `uv.lock`; the Lambda bundle installs exactly the locked runtime set | The engine is audited with everything else, and what ships is what CI checked (it used to be a git tag plus whatever `boto3` was newest) |
 | Vulnerability policy | Zero known advisories, any severity, dev tools included; CI fails otherwise | A public demo of a security product can't ship with known holes; a gate keeps it true after today |
 | React Router | v7 (`react-router`) | v6 has open advisories (open redirect, constructor injection) with no v6 fix |
 | Updates | Dependabot weekly (grouped minor/patch) and security updates; merged only through green PRs | Advisories land continuously; an audit gate without an update stream just blocks merges |

@@ -768,11 +768,15 @@ wheels = [
 ]
 
 [[package]]
-name = "sentinel-engine"
-version = "0.1.0"
-source = { git = "https://github.com/aashishravindran/sentinel-engine?tag=v0.1.0#f0e785e2855468040543db8c91a9e34cf7822a5e" }
+name = "sentinel-authz"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyjwt", extra = ["crypto"] },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/09/51/9f7faa956fba946323b5da15db35060513b9258ce0479f1f69800e6e84a5/sentinel_authz-0.2.0.tar.gz", hash = "sha256:00dd6bd63df79e88235ef7afedc32a8e015b430432d04746e49e0f20fede648a", size = 333423, upload-time = "2026-10-27T15:56:27.167Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/39/0c/92fa6e2c6df5eb35b76c3c3fb3a27f62dd79dc4cfd6507988879bf156d3a/sentinel_authz-0.2.0-py3-none-any.whl", hash = "sha256:de2f3b38b8a837fe842f3f62dc12ff6bc718f12b6d9483fc032fbe9b099de7dc", size = 30234, upload-time = "2026-10-27T15:56:24.643Z" },
 ]
 
 [[package]]
@@ -781,7 +785,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },
-    { name = "sentinel-engine" },
+    { name = "sentinel-authz" },
 ]
 
 [package.dev-dependencies]
@@ -798,7 +802,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.42" },
-    { name = "sentinel-engine", git = "https://github.com/aashishravindran/sentinel-engine?tag=v0.1.0" },
+    { name = "sentinel-authz", specifier = ">=0.2,<0.3" },
 ]
 
 [package.metadata.requires-dev]
