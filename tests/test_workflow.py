@@ -5,6 +5,7 @@ import logging
 
 import pytest
 
+from sentinel_resume.canary import CANARY_EMAIL
 from tests.conftest import ADMIN, RECRUITER, Harness
 
 
@@ -223,3 +224,27 @@ def test_e2e_users_do_not_email_the_admin(harness: Harness) -> None:
     token = harness.token(RECRUITER)
     status, _ = harness.call("POST /requests", token, {"tag": "doc_references", "reason": "e2e"})
     assert status == 200 and harness.sns.published == []
+
+
+def test_canary_questions_stay_out_of_the_visitor_metrics(
+    harness: Harness, caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    caplog.set_level(logging.INFO, logger="sentinel_resume")
+    harness.services.identity.table.update_item(
+        Key={"user_id": RECRUITER},
+        UpdateExpression="SET email = :e",
+        ExpressionAttributeValues={":e": CANARY_EMAIL},
+    )
+    status, _ = harness.call(
+        "POST /chat", harness.token(RECRUITER), {"question": "Where did Aashish study?"}
+    )
+    assert status == 200
+
+    chat = next(r.__dict__["chat"] for r in caplog.records if r.getMessage() == "chat")
+    assert chat["canary"] is True
+    metrics = [
+        json.loads(line) for line in capsys.readouterr().out.splitlines() if '"_aws"' in line
+    ]
+    names = {d["Name"] for m in metrics for d in m["_aws"]["CloudWatchMetrics"][0]["Metrics"]}
+    # A filter bypass still alarms; the question just isn't counted as a visitor's.
+    assert names == {"PostcheckDropped"}

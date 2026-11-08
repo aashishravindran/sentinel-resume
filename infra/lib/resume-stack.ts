@@ -11,6 +11,8 @@ import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
@@ -35,6 +37,8 @@ export interface ResumeStackProps extends StackProps {
 
 const EMBED_MODEL_ID = 'amazon.titan-embed-text-v2:0';
 const ADMIN_SUBS_PARAM = '/sentinel-resume/admin-subs';
+// Matches PASSWORD_PARAM in sentinel_resume/canary.py; scripts/canary_user.py writes it on every deploy.
+const CANARY_PASSWORD_PARAM = '/sentinel-resume/canary-password';
 const SIGNUPS_PER_DAY = 50;
 // Matches Limits.global_chat_per_day in sentinel_resume/config.py.
 const MODEL_CALLS_PER_DAY = 1500;
@@ -258,6 +262,27 @@ export class ResumeStack extends Stack {
       ],
     });
 
+    // --- Canary -----------------------------------------------------------------------------
+    // Loads the site, signs in and asks one question, four times a day, so a broken site is noticed
+    // even when nobody visits. A failure raises; the Lambda error alarm emails the admin.
+    const siteUrl = `https://${distribution.distributionDomainName}`;
+    const canaryFn = fn('Canary', 'sentinel_resume.canary.handler', {
+      environment: { SITE_URL: siteUrl, USER_POOL_CLIENT_ID: client.userPoolClientId },
+      timeout: Duration.seconds(60),
+      // A failed check is the answer; retrying it would only send more questions.
+      retryAttempts: 0,
+    });
+    canaryFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ssm:GetParameter'],
+        resources: [this.formatArn({ service: 'ssm', resource: 'parameter', resourceName: CANARY_PASSWORD_PARAM.slice(1) })],
+      }),
+    );
+    new events.Rule(this, 'CanarySchedule', {
+      schedule: events.Schedule.rate(Duration.hours(6)),
+      targets: [new targets.LambdaFunction(canaryFn, { retryAttempts: 0 })],
+    });
+
     // --- Cost guard -------------------------------------------------------------------------
     new budgets.CfnBudget(this, 'Budget', {
       budget: {
@@ -281,6 +306,7 @@ export class ResumeStack extends Stack {
       alertEmail: props.adminEmail,
       chatFn,
       apiFn,
+      canaryFn,
       triggerFns: [preSignUp, postConfirmation],
       apiId: api.apiId,
       distributionId: distribution.distributionId,
@@ -297,7 +323,7 @@ export class ResumeStack extends Stack {
     new CfnOutput(this, 'DashboardUrl', {
       value: `https://${this.region}.console.aws.amazon.com/cloudwatch/home?region=${this.region}#dashboards/dashboard/SentinelResume`,
     });
-    new CfnOutput(this, 'SiteUrl', { value: `https://${distribution.distributionDomainName}` });
+    new CfnOutput(this, 'SiteUrl', { value: siteUrl });
     new CfnOutput(this, 'ApiEndpoint', { value: api.apiEndpoint });
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new CfnOutput(this, 'UserPoolClientId', { value: client.userPoolClientId });

@@ -147,6 +147,10 @@ export class CiCdStack extends Stack {
     allow(['cloudwatch:PutDashboard', 'cloudwatch:DeleteDashboards', 'cloudwatch:GetDashboard'],
       [`arn:aws:cloudwatch::${account}:dashboard/SentinelResume`]);
     allow(['sns:*'], [arn('sns', 'SentinelResume-*')]);
+    // The canary's schedule.
+    allow(['events:PutRule', 'events:DeleteRule', 'events:DescribeRule', 'events:EnableRule', 'events:DisableRule',
+      'events:PutTargets', 'events:RemoveTargets', 'events:ListTargetsByRule', 'events:TagResource',
+      'events:UntagResource', 'events:ListTagsForResource'], [arn('events', 'rule/SentinelResume-*')]);
     allow(['sns:Unsubscribe', 'sns:GetSubscriptionAttributes', 'sns:SetSubscriptionAttributes'], ['*']);
 
     // --- GitHub deploy role: deploy one stack, nothing else ----------------------------------------
@@ -195,8 +199,8 @@ export class CiCdStack extends Stack {
       }),
     );
 
-    // scripts/test_users.py and scripts/e2e.py: throwaway users, their identity items,
-    // and a temporary allowlist entry for the e2e admin. Only the pool tagged as this app's.
+    // scripts/test_users.py, scripts/canary_user.py and scripts/e2e.py: demo, canary and throwaway users,
+    // their identity items, and a temporary allowlist entry for the e2e admin. Only the pool tagged as this app's.
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: [
@@ -220,7 +224,8 @@ export class CiCdStack extends Stack {
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: ['ssm:GetParameter', 'ssm:PutParameter'],
-        resources: [arn('ssm', 'parameter/sentinel-resume/admin-subs')],
+        // scripts/canary_user.py rotates the canary's password on every deploy.
+        resources: [arn('ssm', 'parameter/sentinel-resume/admin-subs'), arn('ssm', 'parameter/sentinel-resume/canary-password')],
       }),
     );
 
