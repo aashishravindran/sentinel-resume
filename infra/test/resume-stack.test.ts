@@ -108,6 +108,21 @@ describe('ResumeStack', () => {
     });
   });
 
+  test('a canary checks the live site every 6 hours, once per run, and alarms on failure', () => {
+    t.hasResourceProperties('AWS::Events::Rule', {
+      ScheduleExpression: 'rate(6 hours)',
+      Targets: [Match.objectLike({ RetryPolicy: { MaximumRetryAttempts: 0 } })],
+    });
+    t.hasResourceProperties('AWS::Lambda::EventInvokeConfig', { MaximumRetryAttempts: 0 });
+    t.hasResourceProperties('AWS::Lambda::Function', {
+      Handler: 'sentinel_resume.canary.handler',
+      Environment: { Variables: { SITE_URL: Match.anyValue(), USER_POOL_CLIENT_ID: Match.anyValue() } },
+    });
+    const canaryPolicy = Object.entries(t.findResources('AWS::IAM::Policy')).find(([id]) => id.startsWith('CanaryServiceRole'))!;
+    expect(JSON.stringify(canaryPolicy[1])).toContain(':parameter/sentinel-resume/canary-password');
+    t.hasResourceProperties('AWS::CloudWatch::Alarm', { MetricName: 'Errors', Threshold: 1, AlarmDescription: Match.stringLikeRegexp('canary') });
+  });
+
   test('budget alarm exists', () => {
     t.hasResourceProperties('AWS::Budgets::Budget', {
       Budget: Match.objectLike({

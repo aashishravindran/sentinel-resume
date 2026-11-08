@@ -20,6 +20,7 @@ from sentinel_engine.results import NO_RELEVANT_ACCESS, filter_relevant
 
 from sentinel_resume.audit import AuditLog
 from sentinel_resume.auth import AdminGate, NotAdmin, authenticate
+from sentinel_resume.canary import CANARY_EMAIL
 from sentinel_resume.catalog import Doc, load_catalog, requestable_tags
 from sentinel_resume.config import Settings
 from sentinel_resume.identity import ExpiringDdbIdentity, IdentityStore
@@ -211,6 +212,8 @@ async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
     def finish(outcome: str, citations: list[str]) -> None:
         # One line per question: what was asked, by whom, and what each layer did.
         latency = round((time.monotonic() - started) * 1000)
+        # The scheduled canary's questions are logged but kept out of the visitor metrics.
+        canary = _email(p, s) == CANARY_EMAIL
         logger.info(
             "chat",
             extra={
@@ -225,9 +228,13 @@ async def chat(s: Services, p: Principal, event: dict[str, Any]) -> Any:
                     "sent": [c["title"] for c in trace["chunks"]],
                     "citations": citations,
                     "latency_ms": latency,
+                    **({"canary": True} if canary else {}),
                 }
             },
         )
+        if canary:
+            emit(PostcheckDropped=dropped)  # a filter bypass alarms whoever asked
+            return
         emit(
             Questions=1,
             Answered=1 if outcome == "answered" else 0,

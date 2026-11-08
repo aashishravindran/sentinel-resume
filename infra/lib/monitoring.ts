@@ -19,6 +19,8 @@ export interface MonitoringProps {
   readonly alertEmail: string;
   readonly chatFn: lambda.IFunction;
   readonly apiFn: lambda.IFunction;
+  /** Scheduled check of the live site (sentinel_resume/canary.py). */
+  readonly canaryFn: lambda.IFunction;
   readonly triggerFns: lambda.IFunction[];
   readonly apiId: string;
   readonly distributionId: string;
@@ -107,6 +109,12 @@ export class Monitoring extends Construct {
     for (const [name, fn] of [['Chat', props.chatFn], ['Api', props.apiFn]] as const) {
       alarm(`${name}Errors`, fn.metricErrors({ period: Duration.minutes(5) }), 3, `${name} Lambda crashed 3+ times in 5 minutes.`);
     }
+    alarm(
+      'CanaryFailed',
+      props.canaryFn.metricErrors({ period: Duration.minutes(5) }),
+      1,
+      'The scheduled canary could not load the site, sign in or get an answer. Check its log group.',
+    );
     alarm(
       'ChatSlow',
       app('ChatLatencyMs', 'p90', Duration.minutes(15)),
@@ -214,6 +222,7 @@ export class Monitoring extends Construct {
               api('4xx').with({ label: 'API 4xx' }),
               props.chatFn.metricErrors({ period: Duration.hours(1), label: 'Chat errors' }),
               props.apiFn.metricErrors({ period: Duration.hours(1), label: 'API errors' }),
+              props.canaryFn.metricErrors({ period: Duration.hours(1), label: 'Canary failures' }),
               props.chatFn.metricThrottles({ period: Duration.hours(1), label: 'Chat throttles' }),
               ...props.triggerFns.map((f, i) => f.metricErrors({ period: Duration.hours(1), label: `Trigger ${i + 1} errors` })),
             ],
@@ -222,7 +231,8 @@ export class Monitoring extends Construct {
         [
           query('Latest questions', [
             'fields @timestamp, chat.outcome as outcome, chat.question as question, chat.latency_ms as ms, chat.user as user',
-            'filter ispresent(chat.question)',
+            // The canary asks the same question four times a day; show visitors only.
+            'filter ispresent(chat.question) and not ispresent(chat.canary)',
             'sort @timestamp desc',
             'limit 50',
           ]),

@@ -127,6 +127,7 @@ uv run python -m scripts.ingest_corpus       # embed corpus/ into S3 Vectors
 uv run python -m scripts.sync_admins         # make the listed people admins
 # on /admin, set up an authenticator app
 
+uv run python -m scripts.canary_user         # create the canary's user (the deploy rotates its password)
 uv run python -m scripts.e2e                 # live end-to-end check (creates and removes test users)
 ```
 
@@ -151,13 +152,17 @@ Everything lands in CloudWatch (30-day retention), and alarms email the admin th
   `PostcheckDropped`, which must stay 0.
 - **Alarms (email):** filter bypass (first occurrence), admin probing, rate-limit storms, 80% of the
   daily model budget and sign-up cap, budget exhausted, chat throttling, 500s, Lambda errors, slow
-  chat. Each access request is also emailed to the admin through the same
+  chat, a failed canary run. Each access request is also emailed to the admin through the same
   topic, with the recruiter, document, reason and a link to `/admin`.
+- **Canary:** every 6 hours a Lambda loads the site, signs in as `canary@example.com` (public scope,
+  password rotated on every deploy), reads `/me` and asks one question. Any failed step fails the run and
+  emails the admin, so a broken site is noticed even when nobody visits. Its questions are logged but
+  left out of the visitor metrics (except `PostcheckDropped`) and the dashboard's question table.
 - **Dashboard:** `SentinelResume` in CloudWatch: 24-hour totals, traffic, questions, recruiters,
   abuse signals, latency, errors, and the latest questions and API calls.
 
-The site tells users their questions are logged for 30 days. Cost: about $5 a month (12 custom
-metrics, 13 alarms; the dashboard is within the free three).
+The site tells users their questions are logged for 30 days. Cost: about $5 a month (13 custom
+metrics, 14 alarms; the dashboard is within the free three).
 
 ## Develop
 
@@ -184,6 +189,7 @@ push to master ─► tests + build ─► deploy (GitHub OIDC role, no stored k
                                      ├─ cdk deploy SentinelResume (the tested artifacts)
                                      ├─ re-embed corpus/
                                      ├─ reset the demo accounts above
+                                     ├─ rotate the canary's password
                                      └─ live e2e: sign-up, chat, denial, request, approve, expiry
 ```
 
@@ -200,9 +206,9 @@ What the pipeline can do to the AWS account, at most:
 
 | Role | Can | Cannot |
 |---|---|---|
-| GitHub deploy role (OIDC, `production` environment on master only) | change sets on the `SentinelResume` stack; upload to this app's asset bucket; pass one role to CloudFormation; the ingest, demo-user and e2e calls (Cognito admin calls only on the pool tagged `app=sentinel-resume`) | assume the CDK bootstrap roles; touch any other stack; create or edit IAM |
+| GitHub deploy role (OIDC, `production` environment on master only) | change sets on the `SentinelResume` stack; upload to this app's asset bucket; pass one role to CloudFormation; the ingest, demo-user, canary-user and e2e calls (Cognito admin calls only on the pool tagged `app=sentinel-resume`) | assume the CDK bootstrap roles; touch any other stack; create or edit IAM |
 | CloudFormation execution role | the services this stack uses, on `SentinelResume-*` names; create roles named `SentinelResume-*` **only** with the boundary attached | create a role without the boundary, remove a boundary, attach any managed policy but Lambda basic execution |
-| Permissions boundary on every app role | the app's tables, vector index, Bedrock, its SSM parameter, publishing to its own SNS topics, its buckets, CloudFront invalidations | anything else, whatever policy a template attaches |
+| Permissions boundary on every app role | the app's tables, vector index, Bedrock, its SSM parameters, publishing to its own SNS topics, its buckets, CloudFront invalidations | anything else, whatever policy a template attaches |
 
 Zero known vulnerabilities is a merge requirement: the required checks run `npm audit` (frontend and
 infra, any severity) and `pip-audit` (every locked Python dependency). Dependabot opens weekly and
